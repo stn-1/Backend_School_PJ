@@ -91,7 +91,7 @@
             myId = idInput; // Lưu lại ID
 
             // Kết nối
-            socket = io("https://myapp.onrender.com", {
+            socket = io("https://backend-school-pj-1.onrender.com", {
                 auth: { userId: myId },
                 transports: ["websocket"]
             });

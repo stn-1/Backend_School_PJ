@@ -20,16 +20,18 @@ const __dirname = path.dirname(__filename);
 const server = http.createServer(app);
 const io = new Server(server, {
    cors: {
-    origin: ["https://myapp.onrender.com"], // 🔥 không dùng '*' khi deploy
+    origin: ["https://backend-school-pj-1.onrender.com"], // 🔥 không dùng '*' khi deploy
     methods: ["GET", "POST"],
   }
 });
-app.use(express.static(path.join(__dirname, "./public")));
-console.log("STATIC PATH:", path.join(__dirname, "./public"));
-// nhúng socket
-chatSocket(io);
 // Middlewares
 app.use(cors());
+app.use(express.static(path.join(__dirname, "./public")));
+console.log("STATIC PATH:", path.join(__dirname, "./public"));
+
+// nhúng socket
+chatSocket(io);
+
 app.use(morgan("dev"));
 app.use(express.json());
 //test

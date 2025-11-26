@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat: Me vs User Name</title>
+    <style>
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+        
+        /* Giao diện Chat */
+        #chat-container {
+            max-width: 500px; margin: 0 auto; background: white; 
+            border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden; display: flex; flex-direction: column; height: 80vh;
+        }
+
+        #messages {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+
+        /* Style từng dòng tin nhắn */
+        .message-wrapper {
+            display: flex; flex-direction: column; max-width: 70%;
+        }
+
+        /* -- 1. TIN NHẮN CỦA NGƯỜI KHÁC -- */
+        .msg-other { align-self: flex-start; }
+        
+        .msg-other .name {
+            font-size: 12px; color: #555; margin-left: 10px; margin-bottom: 2px;
+        }
+
+        .msg-other .bubble {
+            background: #e4e6eb; color: black;
+            border-radius: 18px 18px 18px 4px; padding: 8px 12px;
+        }
+
+        /* -- 2. TIN NHẮN CỦA MÌNH (ME) -- */
+        .msg-me { align-self: flex-end; }
+        
+        .msg-me .name {
+            font-size: 12px; color: #0084ff; margin-right: 10px; margin-bottom: 2px;
+            text-align: right; font-weight: bold;
+        }
+
+        .msg-me .bubble {
+            background: #0084ff; color: white;
+            border-radius: 18px 18px 4px 18px; padding: 8px 12px;
+        }
+
+        /* Input area */
+        .input-area { padding: 10px; border-top: 1px solid #ddd; display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
+        button { padding: 10px 20px; border-radius: 20px; border: none; background: #0084ff; color: white; cursor: pointer; }
+
+        /* Login fake */
+        #login { text-align: center; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+    <!-- Màn hình nhập ID giả lập -->
+    <div id="login">
+        <h3>Nhập MongoDB _id của bạn để test</h3>
+        <input id="userIdInput" placeholder="Paste _id vào đây..." />
+        <button onclick="connect()">Vào Chat</button>
+    </div>
+
+    <!-- Màn hình Chat -->
+    <div id="chat-container" style="display: none;">
+        <div style="padding: 15px; background: #0084ff; color: white; font-weight: bold;">
+            Chat Room
+        </div>
+        <div id="messages"></div>
+        <div class="input-area">
+            <input id="msgInput" placeholder="Nhập tin nhắn..." onkeypress="handleEnter(event)"/>
+            <button onclick="send()">Gửi</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script>
+        let socket;
+        let myId = ""; // Lưu ID của chính mình
+
+        function connect() {
+            const idInput = document.getElementById('userIdInput').value.trim();
+            if(!idInput) return alert("Cần nhập ID!");
+
+            myId = idInput; // Lưu lại ID
+
+            // Kết nối
+            socket = io("http://localhost:3000", {
+                auth: { userId: myId }
+            });
+
+            socket.on('connect', () => {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('chat-container').style.display = 'flex';
+            });
+
+            // --- XỬ LÝ HIỂN THỊ TÊN ---
+            socket.on('test_message', (data) => {
+                addMessageToScreen(data);
+            });
+        }
+
+        function addMessageToScreen(data) {
+            const list = document.getElementById('messages');
+            const div = document.createElement('div');
+            
+            // LOGIC QUAN TRỌNG NHẤT Ở ĐÂY:
+            const isMe = data.senderId === myId;
+            
+            // Nếu là mình -> Tên hiển thị là "Me"
+            // Nếu là người khác -> Tên hiển thị là data.senderName (Server gửi về)
+            const displayName = isMe ? "Me" : data.senderName; 
+
+            // Gán class CSS tương ứng
+            div.className = isMe ? 'message-wrapper msg-me' : 'message-wrapper msg-other';
+
+            div.innerHTML = `
+                <div class="name">${displayName}</div>
+                <div class="bubble">${data.content}</div>
+            `;
+
+            list.appendChild(div);
+            list.scrollTop = list.scrollHeight;
+        }
+
+        function send() {
+            const input = document.getElementById('msgInput');
+            if(input.value && socket) {
+                socket.emit('test_message', input.value);
+                input.value = '';
+            }
+        }
+        function handleEnter(e) { if(e.key === 'Enter') send(); }
+    </script>
+</body>
+</html>

@@ -1,27 +1,20 @@
+// routes/index.js (Router Tổng)
 import { Router } from "express";
-// 1. Thêm requestRefreshToken vào dòng import
-import { 
-  register, 
-  login, 
-  getProfile, 
-  logout, 
-  requestRefreshToken // <-- Bổ sung cái này
-} from "../controllers/auth.controller.js";
 
-import { verifyToken } from "../middlewares/auth.middleware.js";
+// 1. Import các Route con
+import authRoutes from "./auth.routes.js";
+import homeRoutes from "./home.routes.js"; 
+import friendRoutes from "./friend.routes.js"
+// import productRoutes from "./product.routes.js"; (Sau này thêm vào đây)
 
 const router = Router();
 
-// --- Public Routes ---
-router.post("/register", register);
-router.post("/login", login);
+// 2. Gom nhóm và đặt tên đường dẫn
+// Tất cả request liên quan đến auth sẽ có tiền tố /auth
+router.use("/auth", authRoutes); 
 
-// 2. Thêm Route xử lý Refresh Token
-// Frontend sẽ gọi vào đây khi Access Token hết hạn
-router.post("/refresh", requestRefreshToken); 
-
-// --- Protected Routes ---
-router.get("/profile", verifyToken, getProfile);
-router.post("/logout", verifyToken, logout);
-
+// Tất cả request liên quan đến home sẽ có tiền tố /home
+router.use("/home", homeRoutes);
+//phần bạn bè
+router.use("/friend",friendRoutes)
 export default router;

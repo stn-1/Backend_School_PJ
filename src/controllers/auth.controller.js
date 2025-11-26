@@ -1,5 +1,5 @@
 // controllers/auth.controller.js
-import User from "../config/user.js";
+import User from "../models/user.js";
 import jwt from "jsonwebtoken";
 
 // --- CONFIG ---

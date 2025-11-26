@@ -27,7 +27,7 @@ router.post("/refresh", requestRefreshToken);
 
 // --- PROTECTED ROUTES (Phải có Access Token hợp lệ) ---
 
-// Lấy thông tin cá nhân: GET /api/auth/me
+// Lấy thông tin cá nhân: GET /api/auth/profile
 router.get("/profile", verifyToken, getProfile);
 
 // Đăng xuất: POST /api/auth/logout

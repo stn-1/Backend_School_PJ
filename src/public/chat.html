@@ -165,6 +165,11 @@ function connect() {
     auth: { userId: myId },
     transports: ["websocket"],
   });
+  socket.on("connect_error", (err) => {
+    console.error("Lỗi kết nối:", err.message);
+    alert("Kết nối thất bại: " + err.message); 
+    // Nó sẽ hiện thông báo như: "User not found" hoặc "You are not in a room!"
+  });
 
   socket.on("connect", () => {
     document.getElementById("login").style.display = "none";

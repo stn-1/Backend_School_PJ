@@ -39,6 +39,10 @@ export const createRoom = async (req, res) => {
     });
 
     await room.save();
+    //phần cập nhật user
+    await User.findByIdAndUpdate(userId, { 
+      current_room_id: room._id 
+    });
     return res.json({ message: "Tạo phòng thành công", room });
   } catch (err) {
     console.error(err);
@@ -87,6 +91,10 @@ export const joinRoom = async (req, res) => {
     });
 
     await room.save();
+    //phần chỉnh sủa user
+    await User.findByIdAndUpdate(userId, { 
+      current_room_id: room._id 
+    });
     return res.json({ message: "Tham gia phòng thành công", room });
   } catch (err) {
     console.error(err);
@@ -117,6 +125,9 @@ export const leaveRoom = async (req, res) => {
     );
 
     await room.save();
+    await User.findByIdAndUpdate(userId, { 
+      current_room_id: null 
+    });
     return res.json({ message: "Thoát phòng thành công" });
   } catch (err) {
     console.error(err);
@@ -138,6 +149,11 @@ export const deleteRoom = async (req, res) => {
     if (!isAdmin(room, userId)) {
       return res.status(403).json({ message: "Chỉ admin mới được xoá phòng" });
     }
+    //cập nhật user
+    await User.updateMany(
+      { current_room_id: roomId }, 
+      { $set: { current_room_id: null } }
+    );
 
     await room.deleteOne();
     return res.json({ message: "Xoá phòng thành công" });
@@ -221,6 +237,10 @@ export const kickMember = async (req, res) => {
     );
 
     await room.save();
+    //thay đổi user
+    await User.findByIdAndUpdate(targetId, { 
+      current_room_id: null 
+    });
     return res.json({ message: "Đã kick thành công" });
   } catch (err) {
     console.error(err);

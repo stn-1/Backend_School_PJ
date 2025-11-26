@@ -12,6 +12,7 @@ import { Server } from "socket.io";
 import chatSocket from "./sockets/chat.socket.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import messageRoutes from "./routes/message.routes.js"
 dotenv.config();
 const app = express();
 //phần thử chatsocket
@@ -41,7 +42,9 @@ app.use("/api/auth", authRoutes);
 
 app.use("/api/friend",friendRoutes);
 
-app.use("/api/room",roomRoutes)
+app.use("/api/room",roomRoutes);
+
+app.use("/api",messageRoutes);
 // Start server
 const PORT = process.env.PORT || 3000;
 //kết nối database

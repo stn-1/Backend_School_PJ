@@ -21,7 +21,7 @@ export const getRoomMessages = async (req, res) => {
       .populate("sender_id", "username avatar"); // lấy tên + avatar
 
     // Đảo mảng để hiện từ cũ → mới
-    messages.reverse();
+    //messages.reverse();
 
     const hasMore = messages.length === limit;
 

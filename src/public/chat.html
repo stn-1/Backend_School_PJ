@@ -102,23 +102,40 @@
         color: white;
         cursor: pointer;
       }
+      button:hover {
+        opacity: 0.9;
+      }
 
       /* Login fake */
       #login {
         text-align: center;
         margin-top: 50px;
       }
+      
+      /* Style riêng cho ô input login */
+      #login input {
+        display: block; 
+        margin: 10px auto; 
+        width: 300px;
+        flex: none; /* Reset flex property của input chung */
+      }
     </style>
   </head>
   <body>
-    <!-- Màn hình nhập ID giả lập -->
+    <!-- 1. Màn hình nhập thông tin (Đã sửa) -->
     <div id="login">
-      <h3>Nhập MongoDB _id của bạn để test</h3>
-      <input id="userIdInput" placeholder="Paste _id vào đây..." />
+      <h3>Nhập thông tin để test</h3>
+      
+      <!-- Nhập Room ID -->
+      <input id="roomIdInput" placeholder="Paste Room ID (MongoDB _id) vào đây..." />
+      
+      <!-- Nhập User ID -->
+      <input id="userIdInput" placeholder="Paste User ID (MongoDB _id) vào đây..." />
+      
       <button onclick="connect()">Vào Chat</button>
     </div>
 
-    <!-- Màn hình Chat -->
+    <!-- 2. Màn hình Chat -->
     <div id="chat-container" style="display: none">
       <div
         style="
@@ -126,9 +143,13 @@
           background: #0084ff;
           color: white;
           font-weight: bold;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         "
       >
-        Chat Room
+        <span>Chat Room</span>
+        <button onclick="location.reload()" style="padding: 5px 10px; font-size: 12px; background: rgba(0,0,0,0.2);">Thoát</button>
       </div>
       <div id="messages"></div>
       <div class="input-area">
@@ -143,126 +164,171 @@
 
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script>
-let socket;
-let myId = ""; // ID của chính mình
-let roomId = "YOUR_ROOM_ID"; // ví dụ: "6501abc..." 
-let loadingHistory = false;
-let hasMore = true; // còn tin cũ hay không
-const limit = 20; // fetch 20 tin mỗi lần
+      let socket;
+      let myId = ""; 
+      let roomId = ""; // Không fix cứng nữa, chờ nhập từ input
+      let loadingHistory = false;
+      let hasMore = true;
+      const limit = 20; 
 
-// -------------------------
-// 1. Kết nối socket
-// -------------------------
-function connect() {
-  const idInput = document.getElementById("userIdInput").value.trim();
-  if (!idInput) return alert("Cần nhập ID!");
+      // -------------------------
+      // 1. Kết nối socket
+      // -------------------------
+      function connect() {
+        const rInput = document.getElementById("roomIdInput").value.trim();
+        const uInput = document.getElementById("userIdInput").value.trim();
 
-  myId = idInput;
+        // Kiểm tra xem đã nhập đủ chưa
+        if (!rInput || !uInput) {
+          return alert("Vui lòng nhập đầy đủ Room ID và User ID!");
+        }
 
-  if (socket) socket.disconnect();
+        // Gán giá trị vào biến toàn cục
+        roomId = rInput;
+        myId = uInput;
 
-  socket = io("https://backend-school-pj-1.onrender.com", {
-    auth: { userId: myId },
-    transports: ["websocket"],
-  });
-  socket.on("connect_error", (err) => {
-    console.error("Lỗi kết nối:", err.message);
-    alert("Kết nối thất bại: " + err.message); 
-    // Nó sẽ hiện thông báo như: "User not found" hoặc "You are not in a room!"
-  });
+        if (socket) socket.disconnect();
 
-  socket.on("connect", () => {
-    document.getElementById("login").style.display = "none";
-    document.getElementById("chat-container").style.display = "flex";
+        // Kết nối Socket
+        socket = io("https://backend-school-pj-1.onrender.com", {
+          auth: { userId: myId }, // Backend có thể dùng hoặc không, tùy code của bạn
+          query: { roomId: roomId }, // Gửi roomId lên nếu backend cần check lúc handshake
+          transports: ["websocket"],
+        });
 
-    // Lần đầu load lịch sử
-    loadMessages();
-  });
+        socket.on("connect_error", (err) => {
+          console.error("Lỗi kết nối:", err.message);
+          alert("Kết nối thất bại: " + err.message);
+        });
 
-  socket.on("new_message", (data) => addMessageToScreen(data, false));
-}
+        socket.on("connect", () => {
+          console.log("Đã kết nối Socket!");
+          
+          // Ẩn màn hình Login, hiện Chat
+          document.getElementById("login").style.display = "none";
+          document.getElementById("chat-container").style.display = "flex";
 
-// -------------------------
-// 2. Load lịch sử tin nhắn
-// -------------------------
-async function loadMessages(before = null) {
-  if (loadingHistory || !hasMore) return;
-  loadingHistory = true;
+          // Emit event join_room nếu backend yêu cầu (Thường là cần thiết)
+          // socket.emit("join_room", roomId); 
 
-  let url = `https://backend-school-pj-1.onrender.com/api/${roomId}/messages?limit=${limit}`;
-  if (before) url += `&before=${before}`;
+          // Xóa tin nhắn cũ (nếu có do lần test trước)
+          document.getElementById("messages").innerHTML = "";
+          
+          // Load lịch sử tin nhắn
+          loadMessages();
+        });
 
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
+        socket.on("new_message", (data) => addMessageToScreen(data, false));
+      }
 
-    const list = document.getElementById("messages");
+      // -------------------------
+      // 2. Load lịch sử tin nhắn
+      // -------------------------
+      async function loadMessages(before = null) {
+        if (loadingHistory || !hasMore) return;
+        loadingHistory = true;
 
-    // prepend tin nhắn cũ lên đầu
-    data.messages.forEach(msg => addMessageToScreen(msg, true));
+        // URL giờ sẽ dùng biến roomId thật sự
+        let url = `https://backend-school-pj-1.onrender.com/api/${roomId}/messages?limit=${limit}`;
+        if (before) url += `&before=${before}`;
 
-    hasMore = data.hasMore;
+        try {
+          console.log("Đang gọi API lấy tin nhắn:", url);
+          const res = await fetch(url);
+          
+          if (!res.ok) {
+            throw new Error(`Lỗi API: ${res.status} - ${res.statusText}`);
+          }
 
-  } catch (err) {
-    console.error(err);
-  } finally {
-    loadingHistory = false;
-  }
-}
+          const data = await res.json();
 
-// -------------------------
-// 3. Thêm tin nhắn lên màn hình
-// prepend = true => chèn ở đầu
-// -------------------------
-function addMessageToScreen(data, prepend = false) {
-  const list = document.getElementById("messages");
-  const div = document.createElement("div");
+          // prepend tin nhắn cũ lên đầu
+          if (data.messages && Array.isArray(data.messages)) {
+             data.messages.forEach(msg => addMessageToScreen(msg, true));
+             hasMore = data.hasMore;
+          } else {
+             console.warn("API không trả về mảng messages hợp lệ", data);
+          }
 
-  const isMe = data.senderId === myId;
-  const displayName = isMe ? "Me" : data.senderName;
+        } catch (err) {
+          console.error("Lỗi tải tin nhắn:", err);
+          alert("Không lấy được tin nhắn. Kiểm tra lại Room ID.");
+        } finally {
+          loadingHistory = false;
+        }
+      }
 
-  div.className = isMe ? "message-wrapper msg-me" : "message-wrapper msg-other";
-  div.innerHTML = `
-      <div class="name">${displayName}</div>
-      <div class="bubble">${data.content}</div>
-  `;
+      // -------------------------
+      // 3. Thêm tin nhắn lên màn hình
+      // -------------------------
+      function addMessageToScreen(data, prepend = false) {
+        const list = document.getElementById("messages");
+        const div = document.createElement("div");
 
-  if (prepend) {
-    list.prepend(div);
-  } else {
-    list.appendChild(div);
-    list.scrollTop = list.scrollHeight; // scroll xuống cuối
-  }
-}
+        const isMe = data.senderId === myId;
+        const displayName = isMe ? "Me" : (data.senderName || "User");
 
-// -------------------------
-// 4. Gửi tin nhắn
-// -------------------------
-function send() {
-  const input = document.getElementById("msgInput");
-  if (input.value && socket) {
-    socket.emit("send_message", input.value); // socket event mới
-    input.value = "";
-  }
-}
+        div.className = isMe ? "message-wrapper msg-me" : "message-wrapper msg-other";
+        
+        // Xử lý hiển thị nội dung tin nhắn an toàn (tránh XSS)
+        const safeContent = data.content ? data.content.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
 
-function handleEnter(e) {
-  if (e.key === "Enter") send();
-}
+        div.innerHTML = `
+            <div class="name">${displayName}</div>
+            <div class="bubble">${safeContent}</div>
+        `;
+        
+        // Lưu createdAt vào dataset để dùng cho infinite scroll
+        if (data.createdAt) {
+            div.dataset.createdAt = data.createdAt;
+        }
 
-// -------------------------
-// 5. Infinite scroll để fetch tin nhắn cũ
-// -------------------------
-document.getElementById("messages").addEventListener("scroll", () => {
-  const list = document.getElementById("messages");
-  if (list.scrollTop < 100 && hasMore && !loadingHistory) {
-    // lấy createdAt của tin cũ nhất
-    const firstMsg = list.firstChild;
-    const cursor = firstMsg?.dataset?.createdAt || null;
-    loadMessages(cursor);
-  }
-});
-</script>
+        if (prepend) {
+          list.prepend(div);
+        } else {
+          list.appendChild(div);
+          list.scrollTop = list.scrollHeight; 
+        }
+      }
 
+      // -------------------------
+      // 4. Gửi tin nhắn
+      // -------------------------
+      function send() {
+        const input = document.getElementById("msgInput");
+        const text = input.value.trim();
+        
+        if (text && socket) {
+          // Gửi sự kiện lên server
+          // Lưu ý: Cấu trúc data gửi đi phải khớp với Backend
+          const msgData = {
+            roomId: roomId,
+            content: text,
+            senderId: myId // Nếu backend cần
+          };
+
+          socket.emit("send_message", msgData); 
+          input.value = "";
+        }
+      }
+
+      function handleEnter(e) {
+        if (e.key === "Enter") send();
+      }
+
+      // -------------------------
+      // 5. Infinite scroll
+      // -------------------------
+      document.getElementById("messages").addEventListener("scroll", () => {
+        const list = document.getElementById("messages");
+        if (list.scrollTop < 50 && hasMore && !loadingHistory) {
+          const firstMsg = list.firstChild;
+          const cursor = firstMsg?.dataset?.createdAt || null;
+          if (cursor) {
+              loadMessages(cursor);
+          }
+        }
+      });
+    </script>
   </body>
 </html>

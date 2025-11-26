@@ -10,7 +10,7 @@ export default function chatSocket(io) {
   // -------------------------
   io.use(async (socket, next) => {
     try {
-      const tokenUserId = socket.handshake.auth?.userId;
+      const tokenUserId = socket.handshake.auth.userId;
       if (!tokenUserId) return next(new Error("No userId provided"));
 
       const user = await User.findById(tokenUserId);

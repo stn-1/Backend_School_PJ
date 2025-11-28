@@ -15,9 +15,9 @@ const UserSchema = new Schema({
   avatar: { type: String, default: null },
 
   // --- POMODORO ---
-  streak: { type: Number, default: 0 },
-  total_hours: { type: Number, default: 0 },
-  promo_complete: { type: Number, default: 0 },
+  // streak: { type: Number, default: 0 },
+  // total_hours: { type: Number, default: 0 },
+  // promo_complete: { type: Number, default: 0 },
 
   // --- CHAT & ROOM STATUS (TỐI ƯU) ---
   // Thay vì object {is_in, room_id}, chỉ cần lưu ID. Null nghĩa là không ở phòng nào.

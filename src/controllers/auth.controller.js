@@ -1,7 +1,7 @@
 // controllers/auth.controller.js
 import User from "../models/user.js";
 import jwt from "jsonwebtoken";
-
+import Progress from "../models/progress.js";
 // --- CONFIG ---
 // Nên để trong file .env thực tế
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
@@ -57,7 +57,17 @@ export const register = async (req, res) => {
     user.status = "online"; // Đăng ký xong online luôn
 
     await user.save();
-
+     // 👉 Tạo Progress mặc định
+    await Progress.create({
+      user: user._id,
+      coins: 0,
+      level: 1,
+      current_xp: 0,
+      remaining_xp: 100, // ví dụ để lên level tiếp theo
+      total_duration: 0,
+      last_rewarded_duration: 0,
+      gifts: []
+    });
     return res.status(201).json({
       message: "Register success",
       user: {

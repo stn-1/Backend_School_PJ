@@ -176,8 +176,9 @@ export const getProfile = async (req, res) => {
   try {
     // req.user được gán từ middleware verify ACCESS_TOKEN
     const user = await User.findById(req.user.id).select("-password_hash -refreshToken"); 
-
-    return res.json({ user });
+    //chỗ sửa
+    const data=user;
+    return res.json({ data });
   } catch (err) {
     return res.status(500).json({ message: "Server error" });
   }

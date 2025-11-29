@@ -4,7 +4,8 @@ const { Schema } = mongoose;
 
 // Subschema cho mỗi gift
 const GiftSchema = new mongoose.Schema({
-  senderName: { type: String, required: true },  // tên người gửi
+  receiveId: { type: String, required: true },
+  senderId: { type: String, required: true },  // tên người gửi
   icon: { type: String, required: true },        // URL hoặc path icon PNG
   claimed: { type: Boolean, default: false },    // có nhận hay chưa
   claimedAt: { type: Date }                      // thời gian nhận

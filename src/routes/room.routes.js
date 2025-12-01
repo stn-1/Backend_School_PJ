@@ -1,45 +1,66 @@
 import express from "express";
 import {
-  createRoom,
+  // createRoom, // (Bỏ comment nếu bạn muốn cho user tạo thêm phòng mới ngoài phòng mặc định)
   getRoomBySlug,
   joinRoom,
   leaveRoom,
-  deleteRoom,
   updateRoom,
   getRoomMembers,
   kickMember
 } from "../controllers/room.controller.js";
 
-import { verifyToken } from "../middlewares/auth.middleware.js"; // middleware xác thực JWT
+import { verifyToken } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-/* -------------------------------
-   ROUTES CHÍNH
---------------------------------*/
+/* =========================================
+   MIDDLEWARE
+========================================= */
+// Áp dụng verifyToken cho TOÀN BỘ các routes bên dưới
+// (Bảo vệ tất cả các endpoint của Room)
+router.use(verifyToken); 
 
-// Tạo phòng (người dùng đã login)
-router.post("/", verifyToken, createRoom);
+/* =========================================
+   ROUTES
+========================================= */
 
-// Lấy phòng theo slug (public)
-router.get("/:slug", verifyToken, getRoomBySlug);
+// --- 1. Tạo phòng (Optional) ---
+// Nếu bạn muốn user tạo thêm phòng khác ngoài phòng mặc định
+// router.post("/", createRoom);
 
-// Join phòng
-router.post("/:id/join", verifyToken, joinRoom);
 
-// Leave phòng
-router.post("/:id/leave", verifyToken, leaveRoom);
+// --- 2. Thông tin phòng ---
 
-// Xoá phòng (admin/owner)
-router.delete("/:id", verifyToken, deleteRoom);
+// Lấy thông tin phòng bằng Slug (hoặc room_code)
+// GET /api/rooms/my-cool-room
+router.get("/:slug", getRoomBySlug);
 
-// Update phòng (admin/owner)
-router.patch("/:id", verifyToken, updateRoom);
+// Lấy danh sách thành viên trong phòng
+// GET /api/rooms/64b1f.../members
+router.get("/:id/members", getRoomMembers);
 
-// Lấy danh sách thành viên
-router.get("/:id/members", verifyToken, getRoomMembers);
 
-// Kick member (admin/owner)
-router.post("/:id/kick", verifyToken, kickMember);
+// --- 3. Hành động User (Join/Leave) ---
+
+// Tham gia phòng
+// POST /api/rooms/64b1f.../join
+router.post("/:id/join", joinRoom);
+
+// Rời phòng (Tự động về phòng mặc định)
+// POST /api/rooms/64b1f.../leave
+router.post("/:id/leave", leaveRoom);
+
+
+// --- 4. Hành động Admin (Update/Kick) ---
+
+// Cập nhật thông tin phòng (Tên, mô tả, background...)
+// PATCH /api/rooms/64b1f...
+router.patch("/:id", updateRoom);
+
+// Mời thành viên ra khỏi phòng (Kick)
+// POST /api/rooms/64b1f.../kick
+// Body: { "user_id": "..." }
+router.post("/:id/kick", kickMember);
+
 
 export default router;

@@ -2,13 +2,14 @@
 import User from "../models/user.js";
 import jwt from "jsonwebtoken";
 import Progress from "../models/progress.js";
+import { v2 as cloudinary } from "cloudinary";
+import Room from "../models/room.js";
 // --- CONFIG ---
 // Nên để trong file .env thực tế
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_456";
 const ACCESS_TOKEN_EXPIRES = "15m";
 const REFRESH_TOKEN_EXPIRES = "7d";
-
 // -------------------- HELPERS --------------------
 // Tạo Access Token (để gọi API)
 function signAccessToken(user) {
@@ -68,6 +69,23 @@ export const register = async (req, res) => {
       last_rewarded_duration: 0,
       gifts: []
     });
+    //phần tạo phòng mặc định
+    const newRoom = new Room({
+      name: `${user.name || user.username}'s Room`,
+      description: "Your personal space!",
+      owner_id: user._id,
+      room_members: [
+        {
+          user_id: user._id,
+          role: "admin"
+        }
+      ]
+    });
+    user.default_room_id = newRoom._id;
+    user.current_room_id = newRoom._id;
+
+    await newRoom.save();
+    await user.save(); 
     return res.status(201).json({
       message: "Register success",
       user: {
@@ -199,6 +217,93 @@ export const logout = async (req, res) => {
 
     return res.json({ message: "Logout success" });
   } catch (err) {
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+//phần upload link ảnh 
+export const updateAvatar = async (req, res) => {
+  try {
+    const userId = req.user.id; // Lấy từ auth middleware
+    const user = await User.findById(userId);
+
+    if (!req.file)
+      return res.status(400).json({ error: "No image uploaded" });
+
+    // Nếu có avatar cũ → xóa trên Cloudinary
+    if (user.avatar_public_id) {
+      try {
+        await cloudinary.uploader.destroy(user.avatar_public_id);
+      } catch (err) {
+        console.log("Error removing old avatar: ", err.message);
+      }
+    }
+
+    // Cập nhật dữ liệu mới
+    user.avatar = req.file.path;
+    user.avatar_public_id = req.file.filename;
+    await user.save();
+
+    res.json({ success: true, avatar: user.avatar });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Upload failed" });
+  }
+};
+// controllers/auth.controller.js -> Thêm vào cuối file
+
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id; // Lấy từ token
+    // Lấy các trường cho phép sửa
+    const { name, username, bio, password, newPassword } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // 1. Cập nhật Username (có check trùng)
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+      user.username = username;
+    }
+
+    // 2. Cập nhật thông tin cơ bản
+    if (name !== undefined) user.name = name;
+    if (bio !== undefined) user.bio = bio; // Nếu bạn đã thêm field bio vào Model
+
+    // 3. Cập nhật Mật khẩu
+    // Logic: User phải gửi password MỚI để đổi.
+    // (Tốt hơn là bắt user gửi cả password CŨ để xác nhận, nhưng làm đơn giản trước)
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      // Gán vào virtual field, hook pre('save') sẽ tự hash
+      user.password = password; 
+    }
+
+    await user.save();
+
+    return res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        username: user.username,
+        name: user.name,
+        bio: user.bio,
+        avatar: user.avatar,
+        status: user.status
+      }
+    });
+
+  } catch (err) {
+    console.error("[UPDATE PROFILE ERROR]", err);
+    // Bắt lỗi validation từ Mongoose (ví dụ lỗi password ngắn trong virtual set)
+    if (err.message.includes("Password must be at least")) {
+       return res.status(400).json({ message: err.message });
+    }
     return res.status(500).json({ message: "Server error" });
   }
 };

@@ -5,10 +5,13 @@ import {
   login, 
   requestRefreshToken, 
   getProfile, 
-  logout 
+  logout,
+  updateProfile
 } from "../controllers/auth.controller.js"; // Nhớ thêm .js nếu dùng ES Modules
+import uploadAvatar from "../middlewares/uploadAvata.middleware.js";
+import {updateAvatar} from "../controllers/auth.controller.js";
+import { verifyToken} from "../middlewares/auth.middleware.js";
 
-import { verifyToken } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
@@ -33,4 +36,7 @@ router.get("/profile", verifyToken, getProfile);
 // Đăng xuất: POST /api/auth/logout
 router.post("/logout", verifyToken, logout);
 
+// phần thay đổi avata
+router.post("/avatar", verifyToken , uploadAvatar.single("avatar"), updateAvatar);
+router.patch("/updataProfile",verifyToken,updateProfile);
 export default router;

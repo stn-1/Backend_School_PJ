@@ -9,11 +9,12 @@ const UserSchema = new Schema({
   username: { type: String, required: true, unique: true },
   password_hash: { type: String },
   refreshToken: { type: String, default: null },
-
+  email: { type: String, unique: true, sparse: true, trim: true, lowercase: true }, 
   // --- INFO ---
   name: { type: String, default: "" },
   avatar: { type: String, default: null },
-
+  avatar_public_id: { type: String, default: null },
+  bio: { type: String, default: "", maxlength: 150 }, 
   // --- POMODORO ---
   // streak: { type: Number, default: 0 },
   // total_hours: { type: Number, default: 0 },
@@ -21,8 +22,8 @@ const UserSchema = new Schema({
 
   // --- CHAT & ROOM STATUS (TỐI ƯU) ---
   // Thay vì object {is_in, room_id}, chỉ cần lưu ID. Null nghĩa là không ở phòng nào.
-  current_room_id: { type: Schema.Types.ObjectId, ref: "Room", default: null },
-
+  current_room_id: { type: Schema.Types.ObjectId, ref: "Room" },
+  default_room_id: { type: Schema.Types.ObjectId, ref: "Room" },
   // Trạng thái hiển thị (online/focus...)
   status: { 
     type: String, 

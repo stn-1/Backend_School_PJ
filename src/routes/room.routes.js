@@ -6,7 +6,8 @@ import {
   leaveRoom,
   updateRoom,
   getRoomMembers,
-  kickMember
+  kickMember,
+  getRoomByid
 } from "../controllers/room.controller.js";
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
@@ -34,7 +35,7 @@ router.use(verifyToken);
 // Lấy thông tin phòng bằng Slug (hoặc room_code)
 // GET /api/rooms/my-cool-room
 router.get("/:slug", getRoomBySlug);
-
+router.get("/id/:id",getRoomByid);
 // Lấy danh sách thành viên trong phòng
 // GET /api/rooms/64b1f.../members
 router.get("/:id/members", getRoomMembers);

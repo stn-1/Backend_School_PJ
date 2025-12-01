@@ -8,7 +8,7 @@ import Room from "../models/room.js";
 // Nên để trong file .env thực tế
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_456";
-const ACCESS_TOKEN_EXPIRES = "1m";
+const ACCESS_TOKEN_EXPIRES = "15m";
 const REFRESH_TOKEN_EXPIRES = "7d";
 // -------------------- HELPERS --------------------
 // Tạo Access Token (để gọi API)

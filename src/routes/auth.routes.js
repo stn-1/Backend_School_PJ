@@ -6,7 +6,8 @@ import {
   requestRefreshToken, 
   getProfile, 
   logout,
-  updateProfile
+  updateProfile,
+  getProfilebyID
 } from "../controllers/auth.controller.js"; // Nhớ thêm .js nếu dùng ES Modules
 import uploadAvatar from "../middlewares/uploadAvata.middleware.js";
 import {updateAvatar} from "../controllers/auth.controller.js";
@@ -38,5 +39,6 @@ router.post("/logout", verifyToken, logout);
 
 // phần thay đổi avata
 router.post("/avatar", verifyToken , uploadAvatar.single("avatar"), updateAvatar);
-router.patch("/updataProfile",verifyToken,updateProfile);
+router.patch("/profile",verifyToken,updateProfile);
+router.get("/profile/:id",verifyToken,getProfilebyID)
 export default router;

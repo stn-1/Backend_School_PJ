@@ -8,7 +8,7 @@ import Room from "../models/room.js";
 // Nên để trong file .env thực tế
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_456";
-const ACCESS_TOKEN_EXPIRES = "15m";
+const ACCESS_TOKEN_EXPIRES = "1m";
 const REFRESH_TOKEN_EXPIRES = "7d";
 // -------------------- HELPERS --------------------
 // Tạo Access Token (để gọi API)
@@ -307,3 +307,19 @@ export const updateProfile = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+//phần lấy id 
+export const getProfilebyID= async(req,res)=>{
+  try {
+    const userId = req.params.id;
+    if (!userId) return res.status(400).json({ message: "Thiếu user_id" });
+    
+    const data = await User.findById(userId).select("-password"); // 👈 Sửa ở đây
+
+    if (!data) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+
+    return res.json({ data });
+  } catch (err) {
+    console.error("[GET PROFILE BY ID ERROR]", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+} 

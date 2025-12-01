@@ -68,6 +68,20 @@ export const getRoomBySlug = async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+//phần lấy phòng bằng id
+export const getRoomByid = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const room = await Room.findById(id).lean();
+
+    if (!room) return res.status(404).json({ message: "Không tìm thấy phòng" });
+
+    return res.json(room);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
 
 // ------------------------------
 // JOIN PHÒNG (Logic cốt lõi)

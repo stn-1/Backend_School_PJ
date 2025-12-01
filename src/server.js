@@ -13,7 +13,7 @@ import chatSocket from "./sockets/chat.socket.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import messageRoutes from "./routes/message.routes.js"
-import progressRoutes from "./routes/progress.routes.js";
+import progressRoutes from "./routes/progress.routes.js"; 
 dotenv.config();
 const app = express();
 //phần thử chatsocket

@@ -39,7 +39,7 @@ export const register = async (req, res) => {
 
     const existed = await User.findOne({ username });
     if (existed)
-      return res.status(400).json({ message: "Username already taken" });
+      return res.status(400).json({ message: "username already taken" });
 
     const user = new User({
       username,
@@ -88,10 +88,15 @@ export const register = async (req, res) => {
     await user.save(); 
     return res.status(201).json({
       message: "Register success",
-      user: {
+      data: {
         id: user._id,
         username: user.username,
         name: user.name,
+        status: user.status,
+        avatar:user.avatar,
+        current_room_id:user.current_room_id,
+        default_room_id:user.default_room_id,
+        bio:user.bio
       },
       access_token: accessToken,
       refresh_token: refreshToken, // Client cần lưu cái này an toàn
@@ -126,14 +131,17 @@ export const login = async (req, res) => {
     user.status = "online";
     user.refreshToken = refreshToken; // Ghi đè token cũ (nếu có) -> token cũ ở máy khác sẽ vô hiệu
     await user.save();
-
     return res.json({
       message: "Login success",
-      user: {
+      data: {
         id: user._id,
         username: user.username,
         name: user.name,
-        status: user.status
+        status: user.status,
+        avatar:user.avatar,
+        current_room_id:user.current_room_id,
+        default_room_id:user.default_room_id,
+        bio:user.bio
       },
       access_token: accessToken,
       refresh_token: refreshToken
@@ -243,7 +251,7 @@ export const updateAvatar = async (req, res) => {
     user.avatar_public_id = req.file.filename;
     await user.save();
 
-    res.json({ success: true, avatar: user.avatar });
+    res.json({ success: true});
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: "Upload failed" });
@@ -260,11 +268,11 @@ export const updateProfile = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // 1. Cập nhật Username (có check trùng)
+    // 1. Cập nhật username (có check trùng)
     if (username && username !== user.username) {
       const existingUser = await User.findOne({ username });
       if (existingUser) {
-        return res.status(400).json({ message: "Username already taken" });
+        return res.status(400).json({ message: "username already taken" });
       }
       user.username = username;
     }

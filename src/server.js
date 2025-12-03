@@ -14,6 +14,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import messageRoutes from "./routes/message.routes.js"
 import progressRoutes from "./routes/progress.routes.js"; 
+import sessionRoutes from "./routes/session.routes.js";
 dotenv.config();
 const app = express();
 //phần thử chatsocket
@@ -48,6 +49,8 @@ app.use("/api/room",roomRoutes);
 app.use("/api",messageRoutes);
 
 app.use("/api/progress",progressRoutes);
+
+app.use("/api/session",sessionRoutes);
 // Start server
 const PORT = process.env.PORT || 3000;
 //kết nối database

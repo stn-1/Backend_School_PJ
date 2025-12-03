@@ -1,23 +1,33 @@
+import session from "../models/session.js";
 import Session from "../models/session.js";
 import User from "../models/user.js";
+import mongoose from "mongoose";
+// Helper: chuyển ISO string hoặc Date sang timestamp ms
+const toTimestamp = (value) => {
+  if (!value) return null;
+  return new Date(value).getTime();
+};
 
 // Bắt đầu session mới
 export const startSession = async (req, res) => {
   try {
-    const { plannedDuration } = req.body;
+    const { plannedDuration, begin } = req.body;
     const userId = req.user.id;
 
-    // Kiểm tra user có session đang chạy chưa
     const ongoing = await Session.findOne({ user: userId, status: "in_progress" });
-    if (ongoing) return res.status(400).json({ message: "You already have an ongoing session" });
+    if (ongoing) {
+      return res.status(400).json({ message: "You already have an ongoing session" });
+    }
 
     const session = new Session({
       user: userId,
-      begin: new Date(),
+      begin: new Date(begin), // ⬅️ sửa ở đây
       plannedDuration,
       isPaused: false,
       status: "in_progress",
-      focusTime: 0,
+      pauses: [],
+      pauseCount: 0,
+      duration: 0
     });
 
     await session.save();
@@ -26,73 +36,105 @@ export const startSession = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// Pause session
-export const pauseSession = async (req, res) => {
+export const updateSession = async (req, res) => {
   try {
     const userId = req.user.id;
+    const { end, status, duration } = req.body;
+
+    // Tìm session in_progress của user
     const session = await Session.findOne({ user: userId, status: "in_progress" });
-    if (!session) return res.status(404).json({ message: "No ongoing session found" });
+    if (!session) return res.status(404).json({ message: "Session not found" });
 
-    if (session.isPaused) return res.status(400).json({ message: "Session already paused" });
-
-    const now = new Date();
-    session.focusTime += now - session.begin; // cộng thời gian block vừa qua
-    session.end = now;
-    session.isPaused = true;
-    session.pauseCount += 1;
-    session.begin = null;
+    // Update
+    if (end) session.end = new Date(end);
+    if (status) session.status = status;
+    if (duration !== undefined) session.duration = Number(duration);
 
     await session.save();
-    res.json({ message: "Session paused", session });
+
+    res.status(200).json({ message: "Session updated", session });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Resume session
-export const resumeSession = async (req, res) => {
+//phần trả về tất cả duration của user trong năm
+export const heatmapData = async (req, res) => {
   try {
     const userId = req.user.id;
-    const session = await Session.findOne({ user: userId, status: "in_progress" });
-    if (!session) return res.status(404).json({ message: "No ongoing session found" });
-    if (!session.isPaused) return res.status(400).json({ message: "Session is not paused" });
+    
+    // 1. Lấy năm từ query param, nếu không có thì lấy năm hiện tại
+    const currentYear = new Date().getFullYear();
+    const year = parseInt(req.query.year) || currentYear;
 
-    session.begin = new Date();
-    session.end = null;
-    session.isPaused = false;
+    // 2. Xác định mốc thời gian đầu năm và cuối năm (theo giờ UTC để tránh lệch ngày)
+    // startOfYear: 2025-01-01T00:00:00.000Z
+    const startOfYear = new Date(Date.UTC(year, 0, 1)); 
+    // endOfYear: 2025-12-31T23:59:59.999Z
+    const endOfYear = new Date(Date.UTC(year, 11, 31, 23, 59, 59));
 
-    await session.save();
-    res.json({ message: "Session resumed", session });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+    // 3. Query Database chỉ trong khoảng thời gian của năm đó
+    const rawSessions = await Session.aggregate([
+      { 
+        $match: { 
+          user: new mongoose.Types.ObjectId(userId),
+          begin: { 
+            $gte: startOfYear, 
+            $lte: endOfYear 
+          }
+        } 
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$begin" }
+          },
+          duration: { $sum: "$duration" }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
 
-// Finish session
-export const finishSession = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const session = await Session.findOne({ user: userId, status: "in_progress" });
-    if (!session) return res.status(404).json({ message: "No ongoing session found" });
+    // 4. Tạo Map dữ liệu để tra cứu
+    const dataMap = {};
+    rawSessions.forEach(item => {
+        dataMap[item._id] = item.duration;
+    });
 
-    const now = new Date();
-    if (!session.isPaused && session.begin) {
-      session.focusTime += now - session.begin;
+    // 5. Vòng lặp luôn chạy từ 01/01 đến 31/12 của năm đó
+    // Để đảm bảo heatmap luôn đủ 365/366 ô
+    const durations = [];
+    let loopDate = new Date(startOfYear); // Bắt đầu từ 1/1
+
+    while (loopDate <= endOfYear) {
+        const dateString = loopDate.toISOString().split('T')[0];
+        
+        // Nếu ngày đang lặp > ngày hiện tại thực tế thì có thể dừng (tùy nhu cầu)
+        // Nhưng thường heatmap sẽ trả về hết năm (các ngày tương lai là 0)
+        
+        const value = dataMap[dateString] || 0;
+        durations.push(value);
+
+        // Cộng thêm 1 ngày
+        loopDate.setDate(loopDate.getDate() + 1);
     }
 
-    session.end = now;
-    session.status = "completed";
-    session.isPaused = false;
+    // 6. Trả về kết quả
+    res.json({
+        year: year,
+        start_date: startOfYear.toISOString().split('T')[0], // Luôn là YYYY-01-01
+        end_date: endOfYear.toISOString().split('T')[0],     // Luôn là YYYY-12-31
+        durations: durations
+    });
 
-    await session.save();
-
-    // TODO: Cập nhật Progress: total_duration, streak, promoComplete nếu focusTime >= plannedDuration
-    // Ví dụ:
-    // await updateProgress(userId, session.focusTime, session.plannedDuration);
-
-    res.json({ message: "Session completed", session });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
+};
+//lấy dữ liệu theo ngày
+export const getDurationByday=async(req,res)=>{
+      const {day}= req.body;
+      day =new Date(day);  
+      cong    
 };

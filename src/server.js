@@ -12,7 +12,7 @@ import roomRoutes from "./routes/room.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
 import sessionRoutes from "./routes/session.routes.js";
-import xss from "xss-clean";
+//import xss from "xss-clean";
 import mongoSanitize from "express-mongo-sanitize";
 
 import connectDB from './models/db.js'; 
@@ -51,7 +51,7 @@ app.use(cors({
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());
-app.use(xss());
+//app.use(xss());
 app.use(mongoSanitize());
 
 // Static files

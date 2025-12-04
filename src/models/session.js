@@ -5,12 +5,12 @@ const SessionSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
   begin: { type: Date, required: true },
-  pauses: [
-    {
-      start: { type: Date, required: true },
-      check_point: { type: Date } // null nếu đang pause
-    }
-  ],
+  // pauses: [
+  //   {
+  //     start: { type: Date, required: true },
+  //     check_point: { type: Date } // null nếu đang pause
+  //   }
+  // ],
   end: { type: Date },            // Chỉ có khi session hoàn thành
 
   isPaused: { type: Boolean, default: false },

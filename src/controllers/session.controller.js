@@ -23,6 +23,7 @@ export const startSession = async (req, res) => {
       user: userId,
       begin: new Date(begin), // ⬅️ sửa ở đây
       plannedDuration,
+      end:null,
       isPaused: false,
       status: "in_progress",
       pauses: [],
@@ -133,8 +134,97 @@ export const heatmapData = async (req, res) => {
   }
 };
 //lấy dữ liệu theo ngày
-export const getDurationByday=async(req,res)=>{
-      const {day}= req.body;
-      day =new Date(day);  
-      cong    
+
+
+
+export const getHourlyStats = async (req, res) => {
+  try {
+    const { date, userId } = req.query;
+
+    if (!date || !userId) {
+      return res.status(400).json({ message: "Missing date or userId" });
+    }
+
+    const targetDate = new Date(date);
+
+    // 1. Xác định khung giờ bắt đầu và kết thúc của ngày cần xem
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // 2. Query Database
+    // Chỉ lấy các session đã hoàn thành (completed) vì mới có thời gian kết thúc và duration chính xác
+    const sessions = await Session.find({
+      user: userId,
+      status: "completed", 
+      end: { $exists: true }, // Đảm bảo có end date
+      $or: [
+        // Session bắt đầu hoặc kết thúc trong ngày, hoặc bao trùm cả ngày
+        { begin: { $gte: startOfDay, $lte: endOfDay } },
+        { end: { $gte: startOfDay, $lte: endOfDay } },
+        { begin: { $lt: startOfDay }, end: { $gt: endOfDay } },
+      ],
+    });
+
+    const hourlyStats = new Array(24).fill(0);
+    const startDayTs = startOfDay.getTime();
+    const endDayTs = endOfDay.getTime();
+
+    // 3. Xử lý logic chia thời gian
+    sessions.forEach((session) => {
+      // Thời gian thực tế session diễn ra (bao gồm cả lúc pause)
+      const sessionBeginMs = session.begin.getTime();
+      const sessionEndMs = session.end.getTime();
+      const totalElapsedMs = sessionEndMs - sessionBeginMs;
+
+      if (totalElapsedMs <= 0) return; // Bỏ qua nếu lỗi thời gian
+
+      // Lấy duration thực tế (giây) từ DB. Giả sử duration lưu bằng giây (seconds).
+      // Nếu duration lưu bằng phút thì bỏ phép nhân * 1000 bên dưới.
+      const actualFocusMs = (session.duration || 0) * 1000; 
+      
+      // Tính tỷ lệ tập trung: (Thời gian tập trung thực / Tổng thời gian trôi qua)
+      // Ví dụ: Ngồi 60 phút (elapsed), nhưng chỉ tập 30 phút (focus), tỷ lệ là 0.5
+      let focusRatio = actualFocusMs / totalElapsedMs;
+      
+      // Fallback: Nếu không có duration hoặc ratio > 1 (lỗi data), coi như full thời gian
+      if (!session.duration || focusRatio > 1) focusRatio = 1;
+
+      // Cắt session vào khung giờ của ngày được chọn
+      let current = Math.max(sessionBeginMs, startDayTs);
+      const end = Math.min(sessionEndMs, endDayTs);
+
+      while (current < end) {
+        const currentHour = new Date(current).getHours();
+
+        // Xác định thời điểm kết thúc của giờ hiện tại (VD: 8:00 -> 9:00)
+        const nextHourDate = new Date(current);
+        nextHourDate.setHours(currentHour + 1, 0, 0, 0);
+        const nextHourTs = nextHourDate.getTime();
+
+        // Đoạn thời gian nằm trong giờ này
+        const segmentEnd = Math.min(nextHourTs, end);
+        const segmentDurationMs = segmentEnd - current;
+
+        // Tính số phút tập trung TRONG KHUNG GIỜ NÀY
+        // Công thức: (Khoảng thời gian * Tỷ lệ tập trung) / đổi ra phút
+        const focusedMinutesInSegment = (segmentDurationMs * focusRatio) / 1000 / 60;
+
+        if (currentHour >= 0 && currentHour < 24) {
+          hourlyStats[currentHour] += focusedMinutesInSegment;
+        }
+
+        current = segmentEnd;
+      }
+    });
+
+    // Làm tròn số liệu trả về
+    res.status(200).json(hourlyStats.map((m) => Math.round(m)));
+
+  } catch (error) {
+    console.error("Error in getHourlyStats:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };

@@ -96,7 +96,8 @@ export const register = async (req, res) => {
         avatar:user.avatar,
         current_room_id:user.current_room_id,
         default_room_id:user.default_room_id,
-        bio:user.bio
+        bio:user.bio,
+        country:user.country
       },
       access_token: accessToken,
       refresh_token: refreshToken, // Client cần lưu cái này an toàn
@@ -141,7 +142,8 @@ export const login = async (req, res) => {
         avatar:user.avatar,
         current_room_id:user.current_room_id,
         default_room_id:user.default_room_id,
-        bio:user.bio
+        bio:user.bio,
+        country:user.country
       },
       access_token: accessToken,
       refresh_token: refreshToken
@@ -263,7 +265,7 @@ export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id; // Lấy từ token
     // Lấy các trường cho phép sửa
-    const { name, username, bio, password, newPassword } = req.body;
+    const { name, username,country,bio, password, newPassword } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });

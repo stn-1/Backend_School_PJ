@@ -29,8 +29,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "nanoid": "^5.1.6",
     "nodemailer": "^7.0.10",
-    "socket.io": "^4.8.1",
-    "xss-clean": "^0.1.4"
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

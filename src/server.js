@@ -45,7 +45,7 @@ chatSocket(io);
 // ======= Middlewares =======
 app.use(helmet()); // Thêm header bảo mật
 app.use(cors({
-  origin: "https://rizumu-sage.vercel.app/pomodoro", // domain FE
+  origin: "http://localhost:3000", // domain FE
   credentials: true // bắt buộc nếu dùng cookie
 }));
 app.use(morgan("dev"));

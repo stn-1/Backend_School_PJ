@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 const { Schema } = mongoose;
 
 const SessionSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   completed:{type:Boolean,required: true },
   started_at: { type: Date, required: true },
   // pauses: [

@@ -20,7 +20,7 @@ export const startSession = async (req, res) => {
     }
 
     const session = new Session({
-      user: userId,
+      user_id: userId,
       completed:false,
       started_at: user_id, 
       plannedDuration,

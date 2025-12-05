@@ -7,8 +7,8 @@ const router=express.Router();
 
 router.use(verifyToken);
 
-router.post("/startSession",startSession);
+router.post("/",startSession);
 router.get("/heatmap",heatmapData);
-router.patch("/update",updateSession);
+router.patch("/",updateSession);
 router.get("/hourly",getHourlyStats)
 export default router;

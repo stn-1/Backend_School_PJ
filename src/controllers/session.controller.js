@@ -25,8 +25,6 @@ export const startSession = async (req, res) => {
       started_at: started_at, 
       plannedDuration,
       ended_at:null,
-      isPaused: false,
-      pauseCount: 0,
       duration: 0,
       timer_type:timer_type,
       session_type:session_type,
@@ -40,22 +38,41 @@ export const startSession = async (req, res) => {
 };
 export const updateSession = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { end, status, duration } = req.body;
+    const userId = req.user.id; // Lấy ID user từ middleware xác thực
+    
+    // Lấy các dữ liệu cần update từ body
+    const { 
+      duration, 
+      completed, 
+      notes,  
+      ended_at 
+    } = req.body;
 
-    // Tìm session in_progress của user
-    const session = await Session.findOne({ user: userId, status: "in_progress" });
-    if (!session) return res.status(404).json({ message: "Session not found" });
+    // 1. Tìm session đang chạy (chưa completed) của user đó
+    const session = await Session.findOne({ user_id: userId, completed: false });
 
-    // Update
-    if (end) session.end = new Date(end);
-    if (status) session.status = status;
+    if (!session) {
+      return res.status(404).json({ message: "Không tìm thấy phiên làm việc đang diễn ra." });
+    }
+
+    // 2. Cập nhật các trường nếu có dữ liệu gửi lên
     if (duration !== undefined) session.duration = Number(duration);
+    if (notes !== undefined) session.notes = notes;
+    
 
+    // 3. Xử lý khi kết thúc session
+    if (completed === true) {
+      session.completed = true;
+      // Nếu client gửi ended_at thì dùng, không thì lấy thời gian hiện tại
+      session.ended_at = ended_at ? new Date(ended_at) : new Date();
+    }
+
+    // Lưu lại thay đổi
     await session.save();
 
-    res.status(200).json({ message: "Session updated", session });
+    res.status(200).json({ message: "Cập nhật session thành công", session });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };

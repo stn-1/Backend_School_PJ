@@ -13,8 +13,8 @@ const SessionSchema = new mongoose.Schema({
   // ],
   ended_at: { type: Date },            // Chỉ có khi session hoàn thành
   timer_type:{ type: String },
-  isPaused: { type: Boolean, default: false },
-  pauseCount: { type: Number, default: 0 },  // số lần pause trong 1 session
+  // isPaused: { type: Boolean, default: false },
+  // pauseCount: { type: Number, default: 0 },  // số lần pause trong 1 session
   session_type:{ type: String },  
   //duration: { type: Number, default: 0 }, // tính bằng giây hoặc phút
 

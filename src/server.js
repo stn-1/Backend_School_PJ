@@ -35,7 +35,7 @@ const __dirname = path.dirname(__filename);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["https://rizumu-sage.vercel.app/pomodoro"], // domain frontend của bạn
+    origin: ["http://localhost:3000", "https://rizumu-sage.vercel.app"], // domain frontend của bạn
     methods: ["GET", "POST"],
     credentials: true // cho phép gửi cookie
   }
@@ -45,7 +45,7 @@ chatSocket(io);
 // ======= Middlewares =======
 app.use(helmet()); // Thêm header bảo mật
 app.use(cors({
-  origin: "http://localhost:3000", // domain FE
+  origin: ["http://localhost:3000", "https://rizumu-sage.vercel.app"], // domain FE
   credentials: true // bắt buộc nếu dùng cookie
 }));
 app.use(morgan("dev"));

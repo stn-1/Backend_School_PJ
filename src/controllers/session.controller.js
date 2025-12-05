@@ -11,7 +11,7 @@ const toTimestamp = (value) => {
 // Bắt đầu session mới
 export const startSession = async (req, res) => {
   try {
-    const { plannedDuration, begin } = req.body;
+    const { plannedDuration,  started_at, timer_type, session_type } = req.body;
     const userId = req.user.id;
 
     const ongoing = await Session.findOne({ user: userId, status: "in_progress" });
@@ -21,14 +21,15 @@ export const startSession = async (req, res) => {
 
     const session = new Session({
       user: userId,
-      begin: new Date(begin), // ⬅️ sửa ở đây
+      completed:false,
+      started_at: user_id, 
       plannedDuration,
-      end:null,
+      ended_at:null,
       isPaused: false,
-      status: "in_progress",
-      pauses: [],
       pauseCount: 0,
-      duration: 0
+      duration: 0,
+      timer_type:timer_type,
+      session_type:session_type,
     });
 
     await session.save();

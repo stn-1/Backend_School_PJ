@@ -12,17 +12,17 @@ const toTimestamp = (value) => {
 export const startSession = async (req, res) => {
   try {
     const { plannedDuration,  started_at, timer_type, session_type } = req.body;
-    const userId = req.user.id;
+    const user_id = req.user.id;
 
-    const ongoing = await Session.findOne({ user: userId, status: "in_progress" });
+    const ongoing = await Session.findOne({ user: user_id, completed: false });
     if (ongoing) {
       return res.status(400).json({ message: "You already have an ongoing session" });
     }
 
     const session = new Session({
-      user_id: userId,
+      user_id: user_id,
       completed:false,
-      started_at: user_id, 
+      started_at: started_at, 
       plannedDuration,
       ended_at:null,
       isPaused: false,

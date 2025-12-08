@@ -14,7 +14,7 @@ const UserSchema = new Schema({
   name: { type: String, default: "" },
   avatar: { type: String, default: null },
   avatar_public_id: { type: String, default: null },
-  country:{type:String,default:"",maxlength: 50},
+  country:{type:String,default:"",maxlength: 150},
   bio: { type: String, default: "", maxlength: 150 }, 
   // --- POMODORO ---
   // streak: { type: Number, default: 0 },

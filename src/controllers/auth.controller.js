@@ -282,7 +282,7 @@ export const updateProfile = async (req, res) => {
     // 2. Cập nhật thông tin cơ bản
     if (name !== undefined) user.name = name;
     if (bio !== undefined) user.bio = bio; // Nếu bạn đã thêm field bio vào Model
-
+    if(country!==undefined) user.country = country;
     // 3. Cập nhật Mật khẩu
     // Logic: User phải gửi password MỚI để đổi.
     // (Tốt hơn là bắt user gửi cả password CŨ để xác nhận, nhưng làm đơn giản trước)
@@ -303,6 +303,7 @@ export const updateProfile = async (req, res) => {
         username: user.username,
         name: user.name,
         bio: user.bio,
+        country:user.country,
         avatar: user.avatar,
         status: user.status
       }

@@ -14,7 +14,7 @@ export const verifyToken = (req, res, next) => {
 
   // 2. Nếu không có token -> Báo lỗi 401 (Unauthorized)
   if (!token) {
-    return res.status(401).json({ message: "Access token not found" });
+    return res.status(403).json({ message: "Access token not found" });
   }
 
   // 3. Verify token
@@ -23,7 +23,7 @@ export const verifyToken = (req, res, next) => {
       // Token hết hạn hoặc sai chữ ký
       // Client nhận lỗi 403 này sẽ biết là cần gọi API /refresh
       console.error("[AUTH MIDDLEWARE] Token invalid/expired:", err.message);
-      return res.status(403).json({ message: "Token is invalid or expired" });
+      return res.status(401).json({ message: "Token is invalid or expired" });
     }
 
     // 4. Nếu ngon lành -> Gắn thông tin user vào req để controller phía sau dùng

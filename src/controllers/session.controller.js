@@ -80,166 +80,147 @@ export const updateSession = async (req, res) => {
 //phần trả về tất cả duration của user trong năm
 export const heatmapData = async (req, res) => {
   try {
-    const userId = req.user.id;
-    
-    // 1. Lấy năm từ query param, nếu không có thì lấy năm hiện tại
-    const currentYear = new Date().getFullYear();
-    const year = parseInt(req.query.year) || currentYear;
+    // 0. Lấy userId an toàn
+    const maybeUserId = (req.query.user_id ?? req.user?.id);
+    if (!maybeUserId) return res.status(400).json({ error: "Missing user id" });
+    // validate ObjectId (tránh throw)
+    if (!mongoose.Types.ObjectId.isValid(maybeUserId)) {
+      return res.status(400).json({ error: "Invalid user id" });
+    }
+    const userObjectId = new mongoose.Types.ObjectId(maybeUserId);
 
-    // 2. Xác định mốc thời gian đầu năm và cuối năm (theo giờ UTC để tránh lệch ngày)
-    // startOfYear: 2025-01-01T00:00:00.000Z
-    const startOfYear = new Date(Date.UTC(year, 0, 1)); 
-    // endOfYear: 2025-12-31T23:59:59.999Z
-    const endOfYear = new Date(Date.UTC(year, 11, 31, 23, 59, 59));
+    // 1. Năm
+    const currentYear = new Date().getUTCFullYear();
+    const year = parseInt(req.query.year, 10) || currentYear;
 
-    // 3. Query Database chỉ trong khoảng thời gian của năm đó
+    // 2. Mốc UTC (dùng .999 để chắn chắn)
+    const startOfYear = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0)); // YYYY-01-01T00:00:00.000Z
+    const endOfYear = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999)); // YYYY-12-31T23:59:59.999Z
+
+    // 3. Aggregate: group theo ngày (đảm bảo timezone)
     const rawSessions = await Session.aggregate([
-      { 
-        $match: { 
-          user: new mongoose.Types.ObjectId(userId),
-          begin: { 
-            $gte: startOfYear, 
-            $lte: endOfYear 
-          }
-        } 
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$begin" }
-          },
-          duration: { $sum: "$duration" }
+  {
+    $match: {
+      user_id: userObjectId,
+      started_at: { $gte: startOfYear, $lte: endOfYear }
+    }
+  },
+  {
+    $group: {
+      _id: {
+        $dateToString: { 
+          format: "%Y-%m-%d", 
+          date: "$started_at",
+          timezone: "+00:00"
         }
       },
-      { $sort: { _id: 1 } }
-    ]);
+      duration: { $sum: "$duration" }
+    }
+  },
+  { $sort: { _id: 1 } }
+]);
+    console.log(rawSessions);
 
-    // 4. Tạo Map dữ liệu để tra cứu
+    // 4. Map
     const dataMap = {};
-    rawSessions.forEach(item => {
-        dataMap[item._id] = item.duration;
-    });
+    rawSessions.forEach(item => { dataMap[item._id] = item.duration; });
 
-    // 5. Vòng lặp luôn chạy từ 01/01 đến 31/12 của năm đó
-    // Để đảm bảo heatmap luôn đủ 365/366 ô
+    // 5. Lặp theo UTC bằng setUTCDate
     const durations = [];
-    let loopDate = new Date(startOfYear); // Bắt đầu từ 1/1
-
-    while (loopDate <= endOfYear) {
-        const dateString = loopDate.toISOString().split('T')[0];
-        
-        // Nếu ngày đang lặp > ngày hiện tại thực tế thì có thể dừng (tùy nhu cầu)
-        // Nhưng thường heatmap sẽ trả về hết năm (các ngày tương lai là 0)
-        
-        const value = dataMap[dateString] || 0;
-        durations.push(value);
-
-        // Cộng thêm 1 ngày
-        loopDate.setDate(loopDate.getDate() + 1);
+    const loopDate = new Date(startOfYear); // copy
+    while (loopDate.getTime() <= endOfYear.getTime()) {
+      const dateString = loopDate.toISOString().split('T')[0]; // YYYY-MM-DD in UTC
+      durations.push(dataMap[dateString] || 0);
+      // tăng 1 ngày theo UTC
+      loopDate.setUTCDate(loopDate.getUTCDate() + 1);
     }
 
-    // 6. Trả về kết quả
+    // 6. Trả về
     res.json({
-        year: year,
-        start_date: startOfYear.toISOString().split('T')[0], // Luôn là YYYY-01-01
-        end_date: endOfYear.toISOString().split('T')[0],     // Luôn là YYYY-12-31
-        durations: durations
+      year,
+      start_date: startOfYear.toISOString().split('T')[0],
+      end_date: endOfYear.toISOString().split('T')[0],
+      durations
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("[heatmapData ERROR]", err);
     res.status(500).json({ error: err.message });
   }
 };
-//lấy dữ liệu theo ngày
 
 
 
 export const getHourlyStats = async (req, res) => {
   try {
-    const { date, userId } = req.query;
-
+    const { date, userId } = req.query; // date format: YYYY-MM-DD
     if (!date || !userId) {
       return res.status(400).json({ message: "Missing date or userId" });
     }
 
-    const targetDate = new Date(date);
+    // 1. CHUẨN HÓA NGÀY THEO UTC (Quan trọng)
+    // Giả sử date gửi lên là "2025-12-08"
+    const startOfDay = new Date(date);
+    // Ép cứng về 00:00:00 UTC
+    startOfDay.setUTCHours(0, 0, 0, 0); 
+    
+    const endOfDay = new Date(startOfDay);
+    // Ép cứng về 23:59:59 UTC
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
-    // 1. Xác định khung giờ bắt đầu và kết thúc của ngày cần xem
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // 2. Query Database
-    // Chỉ lấy các session đã hoàn thành (completed) vì mới có thời gian kết thúc và duration chính xác
+    // 2. Query Database (Giờ đã khớp với UTC trong DB)
     const sessions = await Session.find({
-      user: userId,
-      status: "completed", 
-      end: { $exists: true }, // Đảm bảo có end date
-      $or: [
-        // Session bắt đầu hoặc kết thúc trong ngày, hoặc bao trùm cả ngày
-        { begin: { $gte: startOfDay, $lte: endOfDay } },
-        { end: { $gte: startOfDay, $lte: endOfDay } },
-        { begin: { $lt: startOfDay }, end: { $gt: endOfDay } },
-      ],
+      user_id: userId,
+      completed: true,
+      started_at: { $lte: endOfDay }, 
+      ended_at: { $gte: startOfDay }, 
     });
+    console.log(sessions);
 
+    // Mảng kết quả 24h (Tương ứng 00:00 UTC -> 23:00 UTC)
     const hourlyStats = new Array(24).fill(0);
-    const startDayTs = startOfDay.getTime();
-    const endDayTs = endOfDay.getTime();
 
-    // 3. Xử lý logic chia thời gian
     sessions.forEach((session) => {
-      // Thời gian thực tế session diễn ra (bao gồm cả lúc pause)
-      const sessionBeginMs = session.begin.getTime();
-      const sessionEndMs = session.end.getTime();
-      const totalElapsedMs = sessionEndMs - sessionBeginMs;
+      const sessionStartMs = new Date(session.started_at).getTime();
+      const sessionEndMs = new Date(session.ended_at).getTime();
+      const totalElapsedMs = sessionEndMs - sessionStartMs;
 
-      if (totalElapsedMs <= 0) return; // Bỏ qua nếu lỗi thời gian
+      if (totalElapsedMs <= 0) return;
 
-      // Lấy duration thực tế (giây) từ DB. Giả sử duration lưu bằng giây (seconds).
-      // Nếu duration lưu bằng phút thì bỏ phép nhân * 1000 bên dưới.
-      const actualFocusMs = (session.duration || 0) * 1000; 
-      
-      // Tính tỷ lệ tập trung: (Thời gian tập trung thực / Tổng thời gian trôi qua)
-      // Ví dụ: Ngồi 60 phút (elapsed), nhưng chỉ tập 30 phút (focus), tỷ lệ là 0.5
+      // Tính tỷ lệ tập trung (Logic cũ của bạn)
+      const durationInSeconds = session.duration || (totalElapsedMs / 1000);
+      const actualFocusMs = durationInSeconds * 1000;
       let focusRatio = actualFocusMs / totalElapsedMs;
-      
-      // Fallback: Nếu không có duration hoặc ratio > 1 (lỗi data), coi như full thời gian
-      if (!session.duration || focusRatio > 1) focusRatio = 1;
+      // Fix nhỏ: tránh trường hợp focusRatio quá nhỏ do quên tắt máy (như đã bàn)
+      // Nhưng nếu bạn muốn giữ nguyên logic cũ thì cứ để dòng dưới
+      if (focusRatio > 1) focusRatio = 1; 
 
-      // Cắt session vào khung giờ của ngày được chọn
-      let current = Math.max(sessionBeginMs, startDayTs);
-      const end = Math.min(sessionEndMs, endDayTs);
+      // 3. Vòng lặp xử lý logic (Dùng setUTCHours)
+      for (let i = 0; i < 24; i++) {
+        // Tạo khung giờ i theo UTC
+        const hourStart = new Date(startOfDay); 
+        hourStart.setUTCHours(i, 0, 0, 0); // <--- QUAN TRỌNG: Dùng UTC
+        const hourStartMs = hourStart.getTime();
 
-      while (current < end) {
-        const currentHour = new Date(current).getHours();
+        const hourEnd = new Date(startOfDay);
+        hourEnd.setUTCHours(i + 1, 0, 0, 0); // <--- QUAN TRỌNG: Dùng UTC
+        const hourEndMs = hourEnd.getTime();
 
-        // Xác định thời điểm kết thúc của giờ hiện tại (VD: 8:00 -> 9:00)
-        const nextHourDate = new Date(current);
-        nextHourDate.setHours(currentHour + 1, 0, 0, 0);
-        const nextHourTs = nextHourDate.getTime();
+        // Tính giao thoa
+        const overlapStart = Math.max(sessionStartMs, hourStartMs);
+        const overlapEnd = Math.min(sessionEndMs, hourEndMs);
+        const overlapMs = overlapEnd - overlapStart;
 
-        // Đoạn thời gian nằm trong giờ này
-        const segmentEnd = Math.min(nextHourTs, end);
-        const segmentDurationMs = segmentEnd - current;
-
-        // Tính số phút tập trung TRONG KHUNG GIỜ NÀY
-        // Công thức: (Khoảng thời gian * Tỷ lệ tập trung) / đổi ra phút
-        const focusedMinutesInSegment = (segmentDurationMs * focusRatio) / 1000 / 60;
-
-        if (currentHour >= 0 && currentHour < 24) {
-          hourlyStats[currentHour] += focusedMinutesInSegment;
+        if (overlapMs > 0) {
+          const focusedMinutes = (overlapMs * focusRatio) / 1000 / 60;
+          hourlyStats[i] += focusedMinutes;
         }
-
-        current = segmentEnd;
       }
     });
 
-    // Làm tròn số liệu trả về
-    res.status(200).json(hourlyStats.map((m) => Math.round(m)));
+    // 4. Trả về kết quả
+    const result = hourlyStats.map((m) => Number(m.toFixed(2))); 
+    res.status(200).json(result);
 
   } catch (error) {
     console.error("Error in getHourlyStats:", error);

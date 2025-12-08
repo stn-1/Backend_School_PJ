@@ -265,7 +265,7 @@ export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id; // Lấy từ token
     // Lấy các trường cho phép sửa
-    const { name, username,country,bio, password, newPassword } = req.body;
+    const { name, username,country ,bio, password, newPassword } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });

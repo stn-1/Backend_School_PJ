@@ -7,7 +7,8 @@ import {
   updateRoom,
   getRoomMembers,
   kickMember,
-  getRoomByid
+  getRoomByid,
+  getPublicRooms
 } from "../controllers/room.controller.js";
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
@@ -34,6 +35,7 @@ router.use(verifyToken);
 
 // Lấy thông tin phòng bằng Slug (hoặc room_code)
 // GET /api/rooms/my-cool-room
+router.get("/public",getPublicRooms);
 router.get("/:slug", getRoomBySlug);
 router.get("/id/:id",getRoomByid);
 // Lấy danh sách thành viên trong phòng

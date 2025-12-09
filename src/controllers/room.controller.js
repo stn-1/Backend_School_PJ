@@ -82,6 +82,42 @@ export const getRoomByid = async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+//lấy các phòng còn đang đề public
+export const getPublicRooms = async (req, res) => {
+  try {
+    const rooms = await Room.find({ is_public: true })
+      .select("name description owner_id room_members") // chỉ field cần
+      .populate({
+        path: "owner_id",
+        select: "username avatar" // host info
+      })
+      .populate({
+        path: "room_members.user_id",
+        select: "avatar" // chỉ avatar member
+      })
+      .lean();
+    
+
+    const responseData = rooms.map(room => ({
+      id: room._id,
+      name: room.name,
+      description: room.description,
+      host_name: room.owner_id?.username,
+      host_avatar: room.owner_id?.avatar,
+      members: room.room_members.map(m => ({
+        avatar: m.user_id?.avatar,
+      }))
+    }));
+
+    return res.json(responseData);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+};
+
+
 
 // ------------------------------
 // JOIN PHÒNG (Logic cốt lõi)

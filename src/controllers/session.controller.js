@@ -1,4 +1,4 @@
-import session from "../models/session.js";
+//import session from "../models/session.js";
 import Session from "../models/session.js";
 import User from "../models/user.js";
 import mongoose from "mongoose";
@@ -7,6 +7,8 @@ const toTimestamp = (value) => {
   if (!value) return null;
   return new Date(value).getTime();
 };
+
+
 
 // Bắt đầu session mới
 export const startSession = async (req, res) => {
@@ -241,8 +243,6 @@ export const heatmapData = async (req, res) => {
   }
 };
 
-
-
 export const getHourlyStats = async (req, res) => {
   try {
     // Frontend gửi trực tiếp startTime và endTime (đã là chuẩn ISO UTC)
@@ -255,7 +255,7 @@ export const getHourlyStats = async (req, res) => {
 
     const start = new Date(startTime);
     const end = new Date(endTime);
-
+    //phần sửa 
     // 1. Query Database (Dùng đúng mốc Frontend gửi)
     const sessions = await Session.find({
       user_id: userId,
@@ -303,3 +303,28 @@ export const getHourlyStats = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+export const getDailySession=async (req,res) => {
+  try{
+  const { startTime, endTime, userId } = req.query; 
+
+    if (!startTime || !endTime || !userId) {
+      return res.status(400).json({ message: "Missing params" });
+    }
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    //phần sửa 
+    // 1. Query Database (Dùng đúng mốc Frontend gửi)
+    const sessions = await Session.find({
+      user_id: userId,
+      completed: true,
+      started_at: { $lte: end }, 
+      ended_at: { $gte: start }, 
+    });
+    console.log(sessions)
+  res.status(200).json(sessions);
+  }catch(error){
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+}

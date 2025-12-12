@@ -65,8 +65,9 @@ export const register = async (req, res) => {
       level: 1,
       current_xp: 0,
       remaining_xp: 100, // ví dụ để lên level tiếp theo
-      total_duration: 0,
-      last_rewarded_duration: 0,
+      streak:0,
+      total_hours:0,
+      promo_complete:0,
       gifts: []
     });
     //phần tạo phòng mặc định

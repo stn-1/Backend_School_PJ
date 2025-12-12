@@ -8,28 +8,28 @@ const toTimestamp = (value) => {
   return new Date(value).getTime();
 };
 
-
-
 // Bắt đầu session mới
 export const startSession = async (req, res) => {
   try {
-    const { plannedDuration,  started_at, timer_type, session_type } = req.body;
+    const { plannedDuration, started_at, timer_type, session_type } = req.body;
     const user_id = req.user.id;
 
     const ongoing = await Session.findOne({ user: user_id, completed: false });
     if (ongoing) {
-      return res.status(400).json({ message: "You already have an ongoing session" });
+      return res
+        .status(400)
+        .json({ message: "You already have an ongoing session" });
     }
 
     const session = new Session({
       user_id: user_id,
-      completed:false,
-      started_at: started_at, 
+      completed: false,
+      started_at: started_at,
       plannedDuration,
-      ended_at:null,
+      ended_at: null,
       duration: 0,
-      timer_type:timer_type,
-      session_type:session_type,
+      timer_type: timer_type,
+      session_type: session_type,
     });
 
     await session.save();
@@ -41,26 +41,25 @@ export const startSession = async (req, res) => {
 export const updateSession = async (req, res) => {
   try {
     const userId = req.user.id; // Lấy ID user từ middleware xác thực
-    
+
     // Lấy các dữ liệu cần update từ body
-    const { 
-      duration, 
-      completed, 
-      notes,  
-      ended_at 
-    } = req.body;
+    const { duration, completed, notes, ended_at } = req.body;
 
     // 1. Tìm session đang chạy (chưa completed) của user đó
-    const session = await Session.findOne({ user_id: userId, completed: false });
+    const session = await Session.findOne({
+      user_id: userId,
+      completed: false,
+    });
 
     if (!session) {
-      return res.status(404).json({ message: "Không tìm thấy phiên làm việc đang diễn ra." });
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy phiên làm việc đang diễn ra." });
     }
 
     // 2. Cập nhật các trường nếu có dữ liệu gửi lên
     if (duration !== undefined) session.duration = Number(duration);
     if (notes !== undefined) session.notes = notes;
-    
 
     // 3. Xử lý khi kết thúc session
     if (completed === true) {
@@ -110,8 +109,8 @@ export const updateSession = async (req, res) => {
 //   {
 //     $group: {
 //       _id: {
-//         $dateToString: { 
-//           format: "%Y-%m-%d", 
+//         $dateToString: {
+//           format: "%Y-%m-%d",
 //           date: "$started_at",
 //           timezone: "+00:00"
 //         }
@@ -154,15 +153,17 @@ export const heatmapData = async (req, res) => {
   try {
     // 0. Lấy userId và các tham số từ Frontend
     // Frontend gửi: startTime, endTime (ISO UTC), timezone (ví dụ: "+07:00")
-    const { user_id, startTime, endTime} = req.query;
-    const timezone="+07:00";
+    const { user_id, startTime, endTime } = req.query;
+    const timezone = "+07:00";
     // Validate cơ bản
     const maybeUserId = user_id ?? req.user?.id;
     if (!maybeUserId || !mongoose.Types.ObjectId.isValid(maybeUserId)) {
       return res.status(400).json({ error: "Invalid or missing user id" });
     }
     if (!startTime || !endTime || !timezone) {
-      return res.status(400).json({ error: "Missing params: startTime, endTime, or timezone" });
+      return res
+        .status(400)
+        .json({ error: "Missing params: startTime, endTime, or timezone" });
     }
 
     const userObjectId = new mongoose.Types.ObjectId(maybeUserId);
@@ -175,40 +176,42 @@ export const heatmapData = async (req, res) => {
         $match: {
           user_id: userObjectId,
           completed: true, // Nếu cần lọc session hoàn thành
-          started_at: { $gte: start, $lte: end } // Dùng đúng mốc Frontend gửi
-        }
+          started_at: { $gte: start, $lte: end }, // Dùng đúng mốc Frontend gửi
+        },
       },
       {
         $group: {
           _id: {
-            $dateToString: { 
-              format: "%Y-%m-%d", 
+            $dateToString: {
+              format: "%Y-%m-%d",
               date: "$started_at",
-              timezone: timezone // <--- BẮT BUỘC: Để gom nhóm đúng ngày địa phương
-            }
+              timezone: timezone, // <--- BẮT BUỘC: Để gom nhóm đúng ngày địa phương
+            },
           },
-          duration: { $sum: "$duration" }
-        }
+          duration: { $sum: "$duration" },
+        },
       },
-      { $sort: { _id: 1 } }
+      { $sort: { _id: 1 } },
     ]);
 
     // 2. Tạo Map để tra cứu dữ liệu trả về từ DB
     const dataMap = {};
-    rawSessions.forEach(item => { dataMap[item._id] = item.duration; });
+    rawSessions.forEach((item) => {
+      dataMap[item._id] = item.duration;
+    });
 
     // 3. Xử lý logic lặp để điền số 0 cho những ngày không làm việc
     const durations = [];
-    
+
     // Tính toán Offset (độ lệch giờ) để tạo key string (YYYY-MM-DD) chính xác
     // Parse "+07:00" -> ra milliseconds
-    const sign = timezone.startsWith('-') ? -1 : 1;
+    const sign = timezone.startsWith("-") ? -1 : 1;
     const hours = parseInt(timezone.slice(1, 3), 10);
     const mins = parseInt(timezone.slice(4, 6), 10);
     const offsetMs = sign * (hours * 3600000 + mins * 60000);
 
     const oneDayMs = 24 * 60 * 60 * 1000;
-    
+
     // Bắt đầu chạy từ startTime (đã là UTC chuẩn của 0h00 Local)
     let currentPointer = start.getTime();
     const endPointer = end.getTime();
@@ -217,7 +220,7 @@ export const heatmapData = async (req, res) => {
       // Tạo "thời gian ảo" bằng cách cộng lệch múi giờ vào timestamp UTC hiện tại
       // Mục đích: Để hàm toISOString() in ra đúng ngày YYYY-MM-DD của Local
       const fakeLocalDate = new Date(currentPointer + offsetMs);
-      const dateString = fakeLocalDate.toISOString().split('T')[0]; // "2025-01-01"
+      const dateString = fakeLocalDate.toISOString().split("T")[0]; // "2025-01-01"
 
       // Lấy dữ liệu từ Map, nếu không có thì là 0
       durations.push(dataMap[dateString] || 0);
@@ -228,15 +231,18 @@ export const heatmapData = async (req, res) => {
 
     // 4. Trả về kết quả
     // Trả về lại ngày bắt đầu/kết thúc dạng YYYY-MM-DD (Local) để Frontend dễ hiển thị nếu cần
-    const startDateLocal = new Date(start.getTime() + offsetMs).toISOString().split('T')[0];
-    const endDateLocal = new Date(end.getTime() + offsetMs).toISOString().split('T')[0];
+    const startDateLocal = new Date(start.getTime() + offsetMs)
+      .toISOString()
+      .split("T")[0];
+    const endDateLocal = new Date(end.getTime() + offsetMs)
+      .toISOString()
+      .split("T")[0];
 
     res.json({
       start_date: startDateLocal,
       end_date: endDateLocal,
-      durations
+      durations,
     });
-
   } catch (err) {
     console.error("[heatmapData ERROR]", err);
     res.status(500).json({ error: err.message });
@@ -247,7 +253,7 @@ export const getHourlyStats = async (req, res) => {
   try {
     // Frontend gửi trực tiếp startTime và endTime (đã là chuẩn ISO UTC)
     // Ví dụ VN: startTime="2025-12-07T17:00:00.000Z", endTime="2025-12-08T16:59:59.999Z"
-    const { startTime, endTime, userId } = req.query; 
+    const { startTime, endTime, userId } = req.query;
 
     if (!startTime || !endTime || !userId) {
       return res.status(400).json({ message: "Missing params" });
@@ -255,15 +261,15 @@ export const getHourlyStats = async (req, res) => {
 
     const start = new Date(startTime);
     const end = new Date(endTime);
-    //phần sửa 
+    //phần sửa
     // 1. Query Database (Dùng đúng mốc Frontend gửi)
     const sessions = await Session.find({
       user_id: userId,
       completed: true,
-      started_at: { $lte: end }, 
-      ended_at: { $gte: start }, 
+      started_at: { $lte: end },
+      ended_at: { $gte: start },
     });
-    console.log(sessions)
+    console.log(sessions);
 
     const hourlyStats = new Array(24).fill(0);
 
@@ -274,15 +280,18 @@ export const getHourlyStats = async (req, res) => {
 
       if (totalElapsedMs <= 0) return;
 
-      const durationInSeconds = session.duration || (totalElapsedMs / 1000);
-      const focusRatio = Math.min((durationInSeconds * 1000) / totalElapsedMs, 1);
+      const durationInSeconds = session.duration || totalElapsedMs / 1000;
+      const focusRatio = Math.min(
+        (durationInSeconds * 1000) / totalElapsedMs,
+        1
+      );
 
       // 2. Vòng lặp tính toán (Quan trọng: Dựa trên startTime)
       for (let i = 0; i < 24; i++) {
         // Khung giờ thứ i được tính TỪ startTime
         // Nếu startTime là 17:00 UTC (tức 0h VN), thì i=0 sẽ là khung 0h-1h VN
-        const hourStartMs = start.getTime() + (i * 60 * 60 * 1000);
-        const hourEndMs = hourStartMs + (60 * 60 * 1000);
+        const hourStartMs = start.getTime() + i * 60 * 60 * 1000;
+        const hourEndMs = hourStartMs + 60 * 60 * 1000;
 
         const overlapStart = Math.max(sessionStartMs, hourStartMs);
         const overlapEnd = Math.min(sessionEndMs, hourEndMs);
@@ -295,17 +304,16 @@ export const getHourlyStats = async (req, res) => {
       }
     });
 
-    const result = hourlyStats.map((m) => Number(m.toFixed(2))); 
+    const result = hourlyStats.map((m) => Number(m.toFixed(2)));
     res.status(200).json(result);
-
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
-export const getDailySession=async (req,res) => {
-  try{
-  const { startTime, endTime, userId } = req.query; 
+export const getDailySession = async (req, res) => {
+  try {
+    const { startTime, endTime, userId } = req.query;
 
     if (!startTime || !endTime || !userId) {
       return res.status(400).json({ message: "Missing params" });
@@ -313,18 +321,19 @@ export const getDailySession=async (req,res) => {
 
     const start = new Date(startTime);
     const end = new Date(endTime);
-    //phần sửa 
+    //phần sửa
     // 1. Query Database (Dùng đúng mốc Frontend gửi)
     const sessions = await Session.find({
       user_id: userId,
       completed: true,
-      started_at: { $lte: end }, 
-      ended_at: { $gte: start }, 
+      started_at: { $lte: end },
+      ended_at: { $gte: start },
     });
-    console.log(sessions)
-  res.status(200).json(sessions);
-  }catch(error){
+    console.log(sessions);
+    res.status(200).json(sessions);
+  } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ message: "Server error" });
   }
-}
+};
+const getTag = async (req, res) => {};

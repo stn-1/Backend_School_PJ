@@ -4,7 +4,6 @@ import Room from "../models/room.js";
 import Message from "../models/message.js";
 
 export default function chatSocket(io) {
-
   // -------------------------
   // Middleware xác thực user
   // -------------------------
@@ -16,14 +15,15 @@ export default function chatSocket(io) {
       const user = await User.findById(tokenUserId);
       if (!user) return next(new Error("User not found"));
 
-      if (!user.current_room_id) return next(new Error("You are not in a room!"));
+      if (!user.current_room_id)
+        return next(new Error("You are not in a room!"));
 
       // Lưu thông tin user vào socket
       socket.currentUser = {
         _id: user._id.toString(),
         name: user.username,
         avatar: user.avatar,
-        currentRoomId: user.current_room_id.toString() // Room ID dùng làm socket room key
+        currentRoomId: user.current_room_id.toString(), // Room ID dùng làm socket room key
       };
 
       // Join socket vào room
@@ -40,16 +40,18 @@ export default function chatSocket(io) {
   // Xử lý các event
   // -------------------------
   io.on("connection", (socket) => {
-    console.log(`${socket.currentUser.name} connected to room ${socket.currentUser.currentRoomId}`);
+    console.log(
+      `${socket.currentUser.name} connected to room ${socket.currentUser.currentRoomId}`
+    );
 
     // User gửi tin nhắn
     socket.on("send_message", async (msgContent) => {
       try {
         const messageData = {
-          senderId: socket.currentUser._id,
+          sender_id: socket.currentUser._id,
           senderName: socket.currentUser.name,
-          content: msgContent,
-          timestamp: new Date().toISOString()
+          content: msgContent.content,
+          timestamp: new Date().toISOString(),
         };
 
         // Lưu vào DB
@@ -57,12 +59,14 @@ export default function chatSocket(io) {
           sender_id: socket.currentUser._id,
           conversation_id: socket.currentUser.currentRoomId,
           on_model: "Room",
-          content: msgContent
+          content: msgContent,
         });
 
         // Emit cho tất cả socket trong cùng room
-        io.to(socket.currentUser.currentRoomId).emit("new_message", messageData);
-
+        io.to(socket.currentUser.currentRoomId).emit(
+          "new_message",
+          messageData
+        );
       } catch (err) {
         console.error("Error saving message:", err);
       }
@@ -70,7 +74,9 @@ export default function chatSocket(io) {
 
     // Disconnect
     socket.on("disconnect", () => {
-      console.log(`${socket.currentUser.name} disconnected from room ${socket.currentUser.currentRoomId}`);
+      console.log(
+        `${socket.currentUser.name} disconnected from room ${socket.currentUser.currentRoomId}`
+      );
     });
   });
 }

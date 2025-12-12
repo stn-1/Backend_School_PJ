@@ -33,16 +33,15 @@ const returnUserToDefaultRoom = async (userId) => {
         user_id: userId,
         role: "admin", // Về nhà mình thì mình là chủ
         joined_at: new Date(),
-        last_active_at: new Date()
+        last_active_at: new Date(),
       });
       await defaultRoom.save();
     }
 
     // Cập nhật User
     await User.findByIdAndUpdate(userId, {
-      current_room_id: defaultRoom._id
+      current_room_id: defaultRoom._id,
     });
-    
   } catch (error) {
     console.error("Error returning user to default room:", error);
   }
@@ -89,35 +88,31 @@ export const getPublicRooms = async (req, res) => {
       .select("name description owner_id room_members") // chỉ field cần
       .populate({
         path: "owner_id",
-        select: "username avatar" // host info
+        select: "username avatar", // host info
       })
       .populate({
         path: "room_members.user_id",
-        select: "avatar" // chỉ avatar member
+        select: "avatar", // chỉ avatar member
       })
       .lean();
-    
 
-    const responseData = rooms.map(room => ({
+    const responseData = rooms.map((room) => ({
       id: room._id,
       name: room.name,
       description: room.description,
       host_name: room.owner_id?.username,
       host_avatar: room.owner_id?.avatar,
-      members: room.room_members.map(m => ({
+      members: room.room_members.map((m) => ({
         avatar: m.user_id?.avatar,
-      }))
+      })),
     }));
 
     return res.json(responseData);
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Lỗi server" });
   }
 };
-
-
 
 // ------------------------------
 // JOIN PHÒNG (Logic cốt lõi)
@@ -138,7 +133,10 @@ export const joinRoom = async (req, res) => {
       (m) => m.user_id.toString() === userId.toString()
     );
     if (isAlreadyIn) {
-      return res.json({ message: "Bạn đã ở trong phòng này rồi", room: targetRoom });
+      return res.json({
+        message: "Bạn đã ở trong phòng này rồi",
+        room: targetRoom,
+      });
     }
 
     // 3. Lấy User & Rời phòng cũ (Quan trọng)
@@ -146,7 +144,10 @@ export const joinRoom = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User không tồn tại" });
 
     // Nếu user đang ở phòng khác (và phòng đó khác phòng đang định vào)
-    if (user.current_room_id && user.current_room_id.toString() !== targetRoomId) {
+    if (
+      user.current_room_id &&
+      user.current_room_id.toString() !== targetRoomId
+    ) {
       const oldRoom = await Room.findById(user.current_room_id);
       if (oldRoom) {
         // Xóa user khỏi phòng cũ
@@ -159,15 +160,16 @@ export const joinRoom = async (req, res) => {
 
     // 4. Vào phòng mới
     // Nếu là chủ phòng quay lại thì trả quyền admin, không thì là member
-    const role = targetRoom.owner_id.toString() === userId.toString() ? "admin" : "member";
+    const role =
+      targetRoom.owner_id.toString() === userId.toString() ? "admin" : "member";
 
     targetRoom.room_members.push({
       user_id: userId,
-      role: role, 
+      role: role,
       joined_at: new Date(),
-      last_active_at: new Date()
+      last_active_at: new Date(),
     });
-    
+
     await targetRoom.save();
 
     // 5. Cập nhật User
@@ -175,7 +177,6 @@ export const joinRoom = async (req, res) => {
     await user.save();
 
     return res.json({ message: "Tham gia phòng thành công", room: targetRoom });
-
   } catch (err) {
     console.error("[JOIN ROOM ERROR]", err);
     res.status(500).json({ message: "Lỗi server" });
@@ -196,7 +197,7 @@ export const leaveRoom = async (req, res) => {
     // Không cho owner rời phòng (trừ khi xoá phòng)
     if (room.owner_id.toString() === userId.toString()) {
       return res.status(400).json({
-        message: "Chủ phòng không thể rời. Hãy chuyển quyền hoặc xoá phòng."
+        message: "Chủ phòng không thể rời. Hãy chuyển quyền hoặc xoá phòng.",
       });
     }
 
@@ -233,7 +234,7 @@ export const updateRoom = async (req, res) => {
     }
 
     // Merge updates vào room
-    Object.assign(room, updates); 
+    Object.assign(room, updates);
     room.updated_at = new Date();
 
     await room.save();
@@ -253,11 +254,27 @@ export const getRoomMembers = async (req, res) => {
 
     const room = await Room.findById(roomId)
       .select("room_members")
-      .populate("room_members.user_id", "username name avatar");
+      .populate("room_members.user_id", "username name avatar")
+      .lean(); // <-- Quan trọng!
 
-    if (!room) return res.status(404).json({ message: "Không tìm thấy phòng" });
+    if (!room) {
+      return res.status(404).json({ message: "Không tìm thấy phòng" });
+    }
 
-    return res.json(room.room_members);
+    const members = room.room_members.map((m) => {
+      const u = m.user_id;
+      return {
+        user_id: u._id.toString(),
+        username: u.username,
+        name: u.name,
+        avatar: u.avatar,
+        role: m.role,
+        joined_at: m.joined_at,
+        last_active_at: m.last_active_at,
+      };
+    });
+
+    return res.json(members);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Lỗi server" });
@@ -280,12 +297,14 @@ export const kickMember = async (req, res) => {
 
     // Check quyền admin của người kick
     if (!isAdmin(room, userId)) {
-      return res.status(403).json({ message: "Bạn không có quyền kick thành viên" });
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền kick thành viên" });
     }
 
     // Không thể kick chính mình (dù logic UI sẽ chặn nhưng API cũng nên chặn)
     if (userId === targetId) {
-        return res.status(400).json({ message: "Không thể tự kick chính mình" });
+      return res.status(400).json({ message: "Không thể tự kick chính mình" });
     }
 
     // Xóa nạn nhân khỏi danh sách member

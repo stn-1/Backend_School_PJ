@@ -6,7 +6,7 @@ export const getRoomMessages = async (req, res) => {
   try {
     const roomId = req.params.roomId;
     const limit = parseInt(req.query.limit) || 30;
-    //const before = req.query.before ? new Date(req.query.before) : new Date();
+    const before = req.query.before ? new Date(req.query.before) : new Date();
 
     const room = await Room.findById(roomId);
     if (!room) return res.status(404).json({ message: "Room not found" });
@@ -14,9 +14,9 @@ export const getRoomMessages = async (req, res) => {
     const messages = await Message.find({
       conversation_id: room._id,
       on_model: "Room",
-      //createdAt: { $lt: before },
+      createdAt: { $lt: before },
     })
-      .sort({ createdAt: 1 }) // mới nhất lên đầu
+      .sort({ createdAt: -1 }) // mới nhất lên đầu
       .limit(limit)
       .populate("sender_id", "username avatar") // lấy tên + avatar
       .lean();

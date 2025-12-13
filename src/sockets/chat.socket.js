@@ -49,9 +49,10 @@ export default function chatSocket(io) {
       try {
         const messageData = {
           sender_id: socket.currentUser._id,
-          senderName: socket.currentUser.name,
+          //senderName: socket.currentUser.name,
           content: msgContent,
-          timestamp: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          type: "text",
         };
 
         // Lưu vào DB

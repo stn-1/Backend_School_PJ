@@ -16,12 +16,12 @@ export const getRoomMessages = async (req, res) => {
       on_model: "Room",
       createdAt: { $lt: before },
     })
-      .sort({ createdAt: 1 }) // mới nhất lên đầu
+      .sort({ createdAt: -1 }) // mới nhất lên đầu
       .limit(limit)
       .populate("sender_id", "username avatar") // lấy tên + avatar
       .lean();
     // Đảo mảng để hiện từ cũ → mới
-    //messages.reverse();
+    messages.reverse();
     const message2 = messages.map((msg) => ({
       id: msg._id,
       content: msg.content,

@@ -6,8 +6,10 @@ import { v2 as cloudinary } from "cloudinary";
 import Room from "../models/room.js";
 // --- CONFIG ---
 // Nên để trong file .env thực tế
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_456";
+const ACCESS_TOKEN_SECRET =
+  process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
+const REFRESH_TOKEN_SECRET =
+  process.env.REFRESH_TOKEN_SECRET || "refresh_secret_456";
 const ACCESS_TOKEN_EXPIRES = "15m";
 const REFRESH_TOKEN_EXPIRES = "7d";
 // -------------------- HELPERS --------------------
@@ -22,11 +24,9 @@ function signAccessToken(user) {
 
 // Tạo Refresh Token (để cấp lại Access Token)
 function signRefreshToken(user) {
-  return jwt.sign(
-    { id: user._id },
-    REFRESH_TOKEN_SECRET,
-    { expiresIn: REFRESH_TOKEN_EXPIRES }
-  );
+  return jwt.sign({ id: user._id }, REFRESH_TOKEN_SECRET, {
+    expiresIn: REFRESH_TOKEN_EXPIRES,
+  });
 }
 
 // -------------------- REGISTER --------------------
@@ -48,7 +48,7 @@ export const register = async (req, res) => {
 
     // Virtual field xử lý hash pass
     user.password = password;
-    
+
     // Tạo 2 token
     const accessToken = signAccessToken(user);
     const refreshToken = signRefreshToken(user);
@@ -58,17 +58,17 @@ export const register = async (req, res) => {
     user.status = "online"; // Đăng ký xong online luôn
 
     await user.save();
-     // 👉 Tạo Progress mặc định
+    // 👉 Tạo Progress mặc định
     await Progress.create({
       user: user._id,
       coins: 0,
       level: 1,
       current_xp: 0,
       remaining_xp: 100, // ví dụ để lên level tiếp theo
-      streak:0,
-      total_hours:0,
-      promo_complete:0,
-      gifts: []
+      streak: 0,
+      total_hours: 0,
+      promo_complete: 0,
+      gifts: [],
     });
     //phần tạo phòng mặc định
     const newRoom = new Room({
@@ -78,27 +78,27 @@ export const register = async (req, res) => {
       room_members: [
         {
           user_id: user._id,
-          role: "admin"
-        }
-      ]
+          role: "admin",
+        },
+      ],
     });
     user.default_room_id = newRoom._id;
     user.current_room_id = newRoom._id;
 
     await newRoom.save();
-    await user.save(); 
+    await user.save();
     return res.status(201).json({
       message: "Register success",
       data: {
-        id: user._id,
+        _id: user._id,
         username: user.username,
         name: user.name,
         status: user.status,
-        avatar:user.avatar,
-        current_room_id:user.current_room_id,
-        default_room_id:user.default_room_id,
-        bio:user.bio,
-        country:user.country
+        avatar: user.avatar,
+        current_room_id: user.current_room_id,
+        default_room_id: user.default_room_id,
+        bio: user.bio,
+        country: user.country,
       },
       access_token: accessToken,
       refresh_token: refreshToken, // Client cần lưu cái này an toàn
@@ -118,12 +118,10 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Missing username or password" });
 
     const user = await User.findOne({ username });
-    if (!user)
-      return res.status(400).json({ message: "User not found" });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
     const ok = await user.comparePassword(password);
-    if (!ok)
-      return res.status(400).json({ message: "Incorrect password" });
+    if (!ok) return res.status(400).json({ message: "Incorrect password" });
 
     // Tạo mới cặp token
     const accessToken = signAccessToken(user);
@@ -136,18 +134,18 @@ export const login = async (req, res) => {
     return res.json({
       message: "Login success",
       data: {
-        id: user._id,
+        _id: user._id,
         username: user.username,
         name: user.name,
         status: user.status,
-        avatar:user.avatar,
-        current_room_id:user.current_room_id,
-        default_room_id:user.default_room_id,
-        bio:user.bio,
-        country:user.country
+        avatar: user.avatar,
+        current_room_id: user.current_room_id,
+        default_room_id: user.default_room_id,
+        bio: user.bio,
+        country: user.country,
       },
       access_token: accessToken,
-      refresh_token: refreshToken
+      refresh_token: refreshToken,
     });
   } catch (err) {
     console.error("[LOGIN ERROR]", err);
@@ -160,9 +158,9 @@ export const login = async (req, res) => {
 export const requestRefreshToken = async (req, res) => {
   try {
     // Lấy refresh token từ body (hoặc cookie nếu bạn làm cookie)
-    const { refresh_token } = req.body; 
+    const { refresh_token } = req.body;
 
-    if (!refresh_token) 
+    if (!refresh_token)
       return res.status(401).json({ message: "No refresh token provided" });
 
     // 1. Verify xem token có hợp lệ (chưa hết hạn, đúng secret) không
@@ -170,13 +168,14 @@ export const requestRefreshToken = async (req, res) => {
     try {
       decoded = jwt.verify(refresh_token, REFRESH_TOKEN_SECRET);
     } catch (err) {
-      return res.status(403).json({ message: "Invalid or expired refresh token" });
+      return res
+        .status(403)
+        .json({ message: "Invalid or expired refresh token" });
     }
 
     // 2. Tìm user trong DB
     const user = await User.findById(decoded.id);
-    if (!user) 
-      return res.status(403).json({ message: "User not found" });
+    if (!user) return res.status(403).json({ message: "User not found" });
 
     // 3. Quan trọng: So sánh token gửi lên với token trong DB
     // Nếu khác nhau (User đã logout hoặc đăng nhập nơi khác), từ chối
@@ -189,11 +188,10 @@ export const requestRefreshToken = async (req, res) => {
 
     // (Tùy chọn) Có thể cấp luôn Refresh Token mới để xoay vòng (Rotation)
     // Ở đây giữ nguyên refresh token cũ cho đơn giản
-    
-    return res.json({ 
-      access_token: newAccessToken 
-    });
 
+    return res.json({
+      access_token: newAccessToken,
+    });
   } catch (err) {
     console.error("[REFRESH ERROR]", err);
     return res.status(500).json({ message: "Server error" });
@@ -204,9 +202,11 @@ export const requestRefreshToken = async (req, res) => {
 export const getProfile = async (req, res) => {
   try {
     // req.user được gán từ middleware verify ACCESS_TOKEN
-    const user = await User.findById(req.user.id).select("-password_hash -refreshToken"); 
+    const user = await User.findById(req.user.id).select(
+      "-password_hash -refreshToken"
+    );
     //chỗ sửa
-    const data=user;
+    const data = user;
     return res.json({ data });
   } catch (err) {
     return res.status(500).json({ message: "Server error" });
@@ -219,7 +219,7 @@ export const logout = async (req, res) => {
     // Khi logout, ta xóa refresh token trong DB
     // Lần sau kẻ trộm có refresh token cũ cũng không đổi được access token mới
     const user = await User.findById(req.user.id);
-    
+
     if (user) {
       user.status = "offline";
       user.refreshToken = null; // Xóa token
@@ -231,14 +231,13 @@ export const logout = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-//phần upload link ảnh 
+//phần upload link ảnh
 export const updateAvatar = async (req, res) => {
   try {
     const userId = req.user.id; // Lấy từ auth middleware
     const user = await User.findById(userId);
 
-    if (!req.file)
-      return res.status(400).json({ error: "No image uploaded" });
+    if (!req.file) return res.status(400).json({ error: "No image uploaded" });
 
     // Nếu có avatar cũ → xóa trên Cloudinary
     if (user.avatar_public_id) {
@@ -254,7 +253,7 @@ export const updateAvatar = async (req, res) => {
     user.avatar_public_id = req.file.filename;
     await user.save();
 
-    res.json({ success: true});
+    res.json({ success: true });
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: "Upload failed" });
@@ -266,7 +265,7 @@ export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id; // Lấy từ token
     // Lấy các trường cho phép sửa
-    const { name, username,country ,bio, password, newPassword } = req.body;
+    const { name, username, country, bio, password, newPassword } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -283,16 +282,18 @@ export const updateProfile = async (req, res) => {
     // 2. Cập nhật thông tin cơ bản
     if (name !== undefined) user.name = name;
     if (bio !== undefined) user.bio = bio; // Nếu bạn đã thêm field bio vào Model
-    if(country!==undefined) user.country = country;
+    if (country !== undefined) user.country = country;
     // 3. Cập nhật Mật khẩu
     // Logic: User phải gửi password MỚI để đổi.
     // (Tốt hơn là bắt user gửi cả password CŨ để xác nhận, nhưng làm đơn giản trước)
     if (password) {
       if (password.length < 6) {
-        return res.status(400).json({ message: "Password must be at least 6 characters" });
+        return res
+          .status(400)
+          .json({ message: "Password must be at least 6 characters" });
       }
       // Gán vào virtual field, hook pre('save') sẽ tự hash
-      user.password = password; 
+      user.password = password;
     }
 
     await user.save();
@@ -304,34 +305,34 @@ export const updateProfile = async (req, res) => {
         username: user.username,
         name: user.name,
         bio: user.bio,
-        country:user.country,
+        country: user.country,
         avatar: user.avatar,
-        status: user.status
-      }
+        status: user.status,
+      },
     });
-
   } catch (err) {
     console.error("[UPDATE PROFILE ERROR]", err);
     // Bắt lỗi validation từ Mongoose (ví dụ lỗi password ngắn trong virtual set)
     if (err.message.includes("Password must be at least")) {
-       return res.status(400).json({ message: err.message });
+      return res.status(400).json({ message: err.message });
     }
     return res.status(500).json({ message: "Server error" });
   }
 };
-//phần lấy id 
-export const getProfilebyID= async(req,res)=>{
+//phần lấy id
+export const getProfilebyID = async (req, res) => {
   try {
     const userId = req.params.id;
     if (!userId) return res.status(400).json({ message: "Thiếu user_id" });
-    
+
     const data = await User.findById(userId).select("-password"); // 👈 Sửa ở đây
 
-    if (!data) return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    if (!data)
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
 
     return res.json({ data });
   } catch (err) {
     console.error("[GET PROFILE BY ID ERROR]", err);
     return res.status(500).json({ message: "Server error" });
   }
-} 
+};

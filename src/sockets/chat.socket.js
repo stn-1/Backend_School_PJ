@@ -50,7 +50,7 @@ export default function chatSocket(io) {
         const messageData = {
           sender_id: socket.currentUser._id,
           senderName: socket.currentUser.name,
-          content: msgContent.content,
+          content: msgContent,
           timestamp: new Date().toISOString(),
         };
 

@@ -23,6 +23,7 @@ export const startSession = async (req, res) => {
       duration: 0,
       timer_type: timer_type,
       session_type: session_type,
+      notes: "con kek",
     });
 
     await session.save();
@@ -36,7 +37,7 @@ export const updateSession = async (req, res) => {
     const userId = req.user.id; // Lấy ID user từ middleware xác thực
 
     // Lấy các dữ liệu cần update từ body
-    const { duration, completed, notes, ended_at } = req.body;
+    const { duration, completed, ended_at } = req.body;
 
     // 1. Tìm session đang chạy (chưa completed) của user đó
     const session = await Session.findOne({
@@ -329,4 +330,4 @@ export const getDailySession = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-const getTag = async (req, res) => {};
+//const  = async (req, res) => {};

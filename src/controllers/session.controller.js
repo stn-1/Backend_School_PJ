@@ -14,7 +14,10 @@ export const startSession = async (req, res) => {
     const { plannedDuration, started_at, timer_type, session_type } = req.body;
     const user_id = req.user.id;
 
-    const ongoing = await Session.findOne({ user: user_id, completed: false });
+    const ongoing = await Session.findOne({
+      user: user_id,
+      completed: false,
+    }).sort({ startedAt: -1 });
     if (ongoing) {
       return res
         .status(400)

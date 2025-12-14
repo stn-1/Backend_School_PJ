@@ -11,7 +11,7 @@ export const sendFriendRequest = async (req, res) => {
     if (!recipientId)
       return res.status(400).json({ message: "Thiếu recipientId" });
 
-    if (requesterId.equals(recipientId))
+    if (requesterId === recipientId)
       return res
         .status(400)
         .json({ message: "Không thể kết bạn với chính mình" });

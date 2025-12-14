@@ -5,7 +5,7 @@ import User from "../models/user.js"; // Import User nếu cần check tồn t�
 // 1. Gửi lời mời kết bạn
 export const sendFriendRequest = async (req, res) => {
   try {
-    const requesterId = req.user._id;
+    const requesterId = req.user.id;
     const { recipientId } = req.body;
 
     if (!recipientId)

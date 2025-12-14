@@ -336,3 +336,38 @@ export const getProfilebyID = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+// tìm kiếm theo username
+export const searchUsers = async (req, res) => {
+  try {
+    // Lấy từ khóa tìm kiếm từ query param (VD: /api/users/search?q=abc)
+    const { q } = req.query;
+    const currentUserId = req.user.id; // Lấy ID người đang tìm kiếm (từ middleware xác thực)
+
+    // 1. Validate đầu vào
+    if (!q || q.trim() === "") {
+      return res
+        .status(400)
+        .json({ message: "Vui lòng nhập từ khóa tìm kiếm" });
+    }
+
+    // 2. Thực hiện tìm kiếm
+    const users = await User.find({
+      // Tìm username có chứa từ khóa 'q', 'i' là không phân biệt hoa thường
+      username: { $regex: q.trim(), $options: "i" },
+
+      // Loại bỏ user hiện tại khỏi kết quả tìm kiếm (nếu cần)
+      _id: { $ne: currentUserId },
+    })
+      // 3. Chỉ lấy các trường cần thiết (Select fields) để bảo mật
+      .select("username avatar name")
+      // Giới hạn số lượng kết quả để tối ưu performance (ví dụ lấy 10 người)
+      .limit(10);
+
+    return res.status(200).json(users);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Lỗi server khi tìm kiếm người dùng" });
+  }
+};

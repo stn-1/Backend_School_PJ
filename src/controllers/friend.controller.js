@@ -164,8 +164,8 @@ export const getFriendList = async (req, res) => {
       $or: [{ user1: userId }, { user2: userId }],
       status: "accepted",
     })
-      .populate("user1", "username avatar name")
-      .populate("user2", "username avatar name");
+      .populate("user1", "username avatar name status")
+      .populate("user2", "username avatar name status");
 
     // Map dữ liệu để trả về list clean (chỉ chứa thông tin người bạn)
     const friends = friendships.map((f) => {

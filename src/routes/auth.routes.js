@@ -13,20 +13,29 @@ import {
 import uploadAvatar from "../middlewares/uploadAvata.middleware.js";
 import { updateAvatar } from "../controllers/auth.controller.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
-
+//phần vadiate dữ liệu
+import { validate } from "../middlewares/validate.js";
+import {
+  registerSchema,
+  loginSchema,
+  refreshTokenSchema,
+  updateProfileSchema,
+  getProfileByIdSchema,
+  searchUserSchema,
+} from "../validators/auth.validator.js";
 const router = express.Router();
 
 // --- PUBLIC ROUTES (Không cần đăng nhập) ---
 
 // Đăng ký: POST /api/auth/register
-router.post("/register", register);
+router.post("/register", validate(registerSchema), register);
 
 // Đăng nhập: POST /api/auth/login
-router.post("/login", login);
+router.post("/login", validate(loginSchema), login);
 
 // Xin cấp lại Access Token mới: POST /api/auth/refresh
 // (Lưu ý: Route này KHÔNG dùng verifyToken, vì Access Token đã hết hạn rồi mới gọi vào đây)
-router.post("/refresh", requestRefreshToken);
+router.post("/refresh", validate(refreshTokenSchema), requestRefreshToken);
 
 // --- PROTECTED ROUTES (Phải có Access Token hợp lệ) ---
 
@@ -43,7 +52,22 @@ router.post(
   uploadAvatar.single("avatar"),
   updateAvatar
 );
-router.patch("/profile", verifyToken, updateProfile);
-router.get("/profile/:id", verifyToken, getProfilebyID);
-router.get("/search", verifyToken, searchUsers);
+router.patch(
+  "/profile",
+  verifyToken,
+  validate(updateProfileSchema),
+  updateProfile
+);
+router.get(
+  "/profile/:id",
+  verifyToken,
+  validate(getProfileByIdSchema, "params"),
+  getProfilebyID
+);
+router.get(
+  "/search",
+  verifyToken,
+  validate(searchUserSchema, "query"),
+  searchUsers
+);
 export default router;

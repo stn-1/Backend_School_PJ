@@ -53,7 +53,6 @@ export const updateSession = async (req, res) => {
 
     // 2. Cập nhật các trường nếu có dữ liệu gửi lên
     if (duration !== undefined) session.duration = Number(duration);
-    if (notes !== undefined) session.notes = notes;
 
     // 3. Xử lý khi kết thúc session
     if (completed === true) {

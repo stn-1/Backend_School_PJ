@@ -14,16 +14,6 @@ export const startSession = async (req, res) => {
     const { plannedDuration, started_at, timer_type, session_type } = req.body;
     const user_id = req.user.id;
 
-    const ongoing = await Session.findOne({
-      user: user_id,
-      completed: false,
-    }).sort({ startedAt: -1 });
-    if (ongoing) {
-      return res
-        .status(400)
-        .json({ message: "You already have an ongoing session" });
-    }
-
     const session = new Session({
       user_id: user_id,
       completed: false,
@@ -52,7 +42,7 @@ export const updateSession = async (req, res) => {
     const session = await Session.findOne({
       user_id: userId,
       completed: false,
-    });
+    }).sort({ startedAt: -1 });
 
     if (!session) {
       return res

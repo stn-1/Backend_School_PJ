@@ -6,7 +6,7 @@ import {
   getHourlyStats,
   getDailySession,
   changeNote,
-  createSessionTag,
+  //createSessionTag,
 } from "../controllers/session.controller.js";
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
@@ -21,5 +21,5 @@ router.patch("/", updateSession);
 router.patch("/:session_id/note", changeNote);
 router.get("/hourly", getHourlyStats);
 router.get("/daily", getDailySession);
-router.post("/:sessionId/tags", createSessionTag);
+//router.post("/:sessionId/tags", createSessionTag);
 export default router;

@@ -111,7 +111,7 @@ export const acceptFriendRequest = async (req, res) => {
 // 3. Từ chối hoặc Hủy kết bạn
 export const removeFriendship = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { friendshipId } = req.params; // Truyền qua URL param
 
     const friendship = await Friendship.findById(friendshipId);
@@ -158,7 +158,7 @@ export const getFriendRequests = async (req, res) => {
 // 5. Lấy danh sách bạn bè (My Friends)
 export const getFriendList = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const friendships = await Friendship.find({
       $or: [{ user1: userId }, { user2: userId }],

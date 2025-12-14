@@ -43,7 +43,7 @@ export const updateSession = async (req, res) => {
     const session = await Session.findOne({
       user_id: userId,
       completed: false,
-    }).sort({ startedAt: -1 });
+    }).sort({ startedAt: 1 });
 
     if (!session) {
       return res

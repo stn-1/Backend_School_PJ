@@ -325,7 +325,9 @@ export const getProfilebyID = async (req, res) => {
     const userId = req.params.id;
     if (!userId) return res.status(400).json({ message: "Thiếu user_id" });
 
-    const data = await User.findById(userId).select("-password"); // 👈 Sửa ở đây
+    const data = await User.findById(userId).select(
+      "-password -password_hash -refreshToken -__v -avatar_public_id"
+    ); // 👈 Sửa ở đây
 
     if (!data)
       return res.status(404).json({ message: "Không tìm thấy người dùng" });

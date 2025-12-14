@@ -5,64 +5,53 @@ import User from "../models/user.js"; // Import User nếu cần check tồn t�
 // 1. Gửi lời mời kết bạn
 export const sendFriendRequest = async (req, res) => {
   try {
-    const requesterId = req.user.id;
+    const requesterId = req.user?._id || req.user?.id; // Lấy từ JWT Middleware
     const { recipientId } = req.body;
-
-    if (!recipientId)
-      return res.status(400).json({ message: "Thiếu recipientId" });
-
-    if (requesterId === recipientId)
+    console.log(requesterId);
+    if (requesterId.toString() === recipientId) {
       return res
         .status(400)
         .json({ message: "Không thể kết bạn với chính mình" });
+    }
 
-    if (!mongoose.Types.ObjectId.isValid(recipientId))
-      return res.status(400).json({ message: "recipientId không hợp lệ" });
-
-    const receiverExists = await User.exists({ _id: recipientId });
-    if (!receiverExists)
-      return res.status(404).json({ message: "Người nhận không tồn tại" });
-
-    const a = requesterId.toString();
-    const b = recipientId.toString();
-    const [user1, user2] =
-      a < b ? [requesterId, recipientId] : [recipientId, requesterId];
-
+    // Thử tạo Friendship mới
+    // Nhờ pre('validate') hook trong Model của bạn, user1 và user2 sẽ tự sắp xếp
     try {
-      const friendship = await Friendship.create({
-        user1,
-        user2,
+      const newFriendship = await Friendship.create({
+        user1: requesterId,
+        user2: recipientId,
         requester: requesterId,
         receiver: recipientId,
         status: "pending",
       });
 
-      return res.status(201).json({
+      res.status(201).json({
         message: "Đã gửi lời mời kết bạn",
-        friendship,
+        friendship: newFriendship,
       });
     } catch (err) {
+      // Bắt lỗi trùng lặp (Duplicate Key E11000) do Index {user1: 1, user2: 1} unique
       if (err.code === 11000) {
-        const existing = await Friendship.findOne({ user1, user2 });
-
-        if (!existing)
-          return res.status(409).json({ message: "Friendship conflict" });
+        // Kiểm tra trạng thái hiện tại để báo lỗi chính xác hơn
+        const existing = await Friendship.findOne({
+          $or: [
+            { user1: requesterId, user2: recipientId },
+            { user1: recipientId, user2: requesterId },
+          ],
+        });
 
         if (existing.status === "pending")
           return res
             .status(400)
             .json({ message: "Đã có lời mời đang chờ xử lý." });
-
         if (existing.status === "accepted")
           return res.status(400).json({ message: "Hai người đã là bạn bè." });
-
         if (existing.status === "blocked")
           return res
             .status(400)
             .json({ message: "Không thể gửi lời mời (Blocked)." });
       }
-
-      throw err;
+      throw err; // Ném các lỗi khác
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -158,10 +147,7 @@ export const getFriendRequests = async (req, res) => {
     const requests = await Friendship.find({
       $or: [{ user1: userId }, { user2: userId }],
       status: "pending",
-    }).populate(
-      { path: "requester", select: "username avatar name" },
-      { path: "receiver", select: "username avatar name" }
-    ); // Lấy thông tin người gửi để hiển thị
+    }).populate("requester receiver", "username avatar name"); // Lấy thông tin người gửi để hiển thị
 
     res.status(200).json(requests);
   } catch (error) {

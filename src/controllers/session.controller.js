@@ -330,4 +330,81 @@ export const getDailySession = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-//const  = async (req, res) => {};
+export const changeNote = async (req, res) => {
+  try {
+    const { session_id } = req.params;
+    const { notes } = req.body;
+    if (!notes) {
+      return res.status(400).json({ message: "Notes is required" });
+    }
+
+    const session = await Session.findByIdAndUpdate(
+      session_id,
+      { notes },
+      { new: true }
+    );
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    return res.status(200).json({
+      message: "Note updated successfully",
+      session,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+export const createSessionTag = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { name, color } = req.body;
+    const userId = req.user._id;
+
+    // 1. Validate input
+    if (!name || name.trim() === "") {
+      return res.status(400).json({ message: "Tag name is required" });
+    }
+
+    // 2. Tìm session và check ownership
+    const session = await Session.findOne({
+      _id: sessionId,
+      user_id: userId,
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    // 3. (Optional) Check tag trùng tên
+    const duplicated = session.tags.some(
+      (tag) => tag.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (duplicated) {
+      return res.status(409).json({ message: "Tag already exists" });
+    }
+
+    // 4. Tạo tag (Mongoose tự tạo _id)
+    const newTag = {
+      user_id: userId,
+      name: name.trim(),
+      color,
+    };
+
+    session.tags.push(newTag);
+
+    await session.save();
+
+    // 5. Trả về tag vừa tạo (tag cuối cùng)
+    const createdTag = session.tags[session.tags.length - 1];
+
+    return res.status(201).json({
+      message: "Tag created successfully",
+      tag: createdTag,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};

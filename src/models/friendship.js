@@ -2,31 +2,34 @@
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
-const FriendshipSchema = new Schema(
-  {
-    user1: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    user2: { type: Schema.Types.ObjectId, ref: "User", required: true },
+const FriendshipSchema = new Schema({
+  user1: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  user2: { type: Schema.Types.ObjectId, ref: "User", required: true },
 
-    status: {
-      type: String,
-      enum: ["pending", "accepted", "blocked"],
-      default: "pending"
-    },
+  status: {
+    type: String,
+    enum: ["pending", "accepted", "blocked"],
+    default: "pending",
+  },
 
-    requester: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true
-    },
+  requester: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
 
-    created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
-  }
-);
+  receiver: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+});
 
 // Unique index để đảm bảo không có duplicate friendship
 FriendshipSchema.index({ user1: 1, user2: 1 }, { unique: true });
-
 
 // -------------------------------------------
 // 🧩 Middleware Mongoose v7 — KHÔNG dùng next()

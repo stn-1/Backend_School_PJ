@@ -4,6 +4,6 @@ import { verifyToken } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 router.use(verifyToken);
-router.get("/", getProgress);
+router.get("/:userId", getProgress);
 
 export default router;

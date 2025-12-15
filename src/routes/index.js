@@ -14,7 +14,7 @@ const router = Router();
 router.use("/auth", authRoutes); 
 
 // Tất cả request liên quan đến home sẽ có tiền tố /home
-router.use("/home", homeRoutes);
+router.use("/", homeRoutes);
 //phần bạn bè
 router.use("/friend",friendRoutes)
 export default router;

@@ -322,3 +322,66 @@ export const kickMember = async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+export const changeBackground = async (req, res) => {
+  try {
+    // 1. Lấy dữ liệu từ Request
+    const { id } = req.params; // ID của phòng (hoặc dùng slug nếu bạn muốn route theo slug)
+    const { name, type } = req.body;
+    const currentUserId = req.user.id; // Giả sử bạn có middleware auth gán user vào req
+    console.log(name);
+    // 2. Validate dữ liệu đầu vào (nếu có gửi lên)
+    if (type && !["static", "animated"].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: "Background type must be 'static' or 'animated'.",
+      });
+    }
+
+    // 3. Tìm phòng trong Database
+    const room = await Room.findById(id);
+
+    if (!room) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Room not found." });
+    }
+
+    // 4. Kiểm tra quyền hạn (Authorization)
+    // Người dùng phải là Chủ phòng (Owner) HOẶC là thành viên có role 'admin'
+    const isOwner = room.owner_id.toString() === currentUserId;
+
+    // Tìm trong mảng room_members xem user có phải là admin không
+    const memberInfo = room.room_members.find(
+      (member) => member.user_id.toString() === currentUserId
+    );
+    const isAdminMember = memberInfo && memberInfo.role === "admin";
+
+    if (!isOwner && !isAdminMember) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Permission denied. You must be an Owner or Admin to change settings.",
+      });
+    }
+
+    // 5. Thực hiện cập nhật (Logic PATCH - chỉ cập nhật cái gì có gửi lên)
+    if (name) room.background.name = name;
+    if (type) room.background.type = type;
+
+    // 6. Lưu lại vào DB
+    const updatedRoom = await room.save();
+
+    // 7. Trả về kết quả
+    return res.status(200).json({
+      success: true,
+      message: "Background updated successfully.",
+      data: updatedRoom.background,
+    });
+  } catch (error) {
+    console.error("Error changing background:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};

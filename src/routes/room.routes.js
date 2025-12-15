@@ -8,7 +8,8 @@ import {
   getRoomMembers,
   kickMember,
   getRoomByid,
-  getPublicRooms
+  getPublicRooms,
+  changeBackground,
 } from "../controllers/room.controller.js";
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
@@ -20,7 +21,7 @@ const router = express.Router();
 ========================================= */
 // Áp dụng verifyToken cho TOÀN BỘ các routes bên dưới
 // (Bảo vệ tất cả các endpoint của Room)
-router.use(verifyToken); 
+router.use(verifyToken);
 
 /* =========================================
    ROUTES
@@ -30,18 +31,16 @@ router.use(verifyToken);
 // Nếu bạn muốn user tạo thêm phòng khác ngoài phòng mặc định
 // router.post("/", createRoom);
 
-
 // --- 2. Thông tin phòng ---
 
 // Lấy thông tin phòng bằng Slug (hoặc room_code)
 // GET /api/rooms/my-cool-room
-router.get("/public",getPublicRooms);
+router.get("/public", getPublicRooms);
 router.get("/:slug", getRoomBySlug);
-router.get("/id/:id",getRoomByid);
+router.get("/id/:id", getRoomByid);
 // Lấy danh sách thành viên trong phòng
 // GET /api/rooms/64b1f.../members
 router.get("/:id/members", getRoomMembers);
-
 
 // --- 3. Hành động User (Join/Leave) ---
 
@@ -52,7 +51,6 @@ router.post("/:id/join", joinRoom);
 // Rời phòng (Tự động về phòng mặc định)
 // POST /api/rooms/64b1f.../leave
 router.post("/:id/leave", leaveRoom);
-
 
 // --- 4. Hành động Admin (Update/Kick) ---
 
@@ -65,5 +63,5 @@ router.patch("/:id", updateRoom);
 // Body: { "user_id": "..." }
 router.post("/:id/kick", kickMember);
 
-
+router.patch("/:id/background", changeBackground);
 export default router;

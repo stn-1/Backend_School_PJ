@@ -3,7 +3,7 @@ export const validate = (schema, property = "body") => {
   return (req, res, next) => {
     const { error, value } = schema.validate(req[property], {
       abortEarly: false,
-      stripUnknown: true, // ❗ xóa field thừa → chống injection
+      stripUnknown: true,
     });
 
     if (error) {
@@ -13,7 +13,13 @@ export const validate = (schema, property = "body") => {
       });
     }
 
-    req[property] = value;
+    // 🔥 FIX QUAN TRỌNG
+    if (property === "query" || property === "params") {
+      Object.assign(req[property], value); // ✅
+    } else {
+      req[property] = value; // body thì vẫn OK
+    }
+
     next();
   };
 };

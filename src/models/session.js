@@ -15,5 +15,6 @@ const SessionSchema = new mongoose.Schema({
 
   notes: { type: String }, // Ghi chú của user (optional)
 });
-
+SessionSchema.index({ user_id: 1, completed: 1, started_at: 1 });
+SessionSchema.index({ completed: 1, started_at: 1 });
 export default mongoose.model("Session", SessionSchema);

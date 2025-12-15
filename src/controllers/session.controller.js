@@ -355,3 +355,88 @@ export const changeNote = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+export const getLeaderboard = async (req, res) => {
+  try {
+    // 1. Lấy tham số từ Frontend
+    const { startTime, endTime } = req.query;
+
+    // Validate
+    if (!startTime || !endTime) {
+      return res
+        .status(400)
+        .json({ error: "Missing params: startTime or endTime" });
+    }
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    // 2. Thực hiện Aggregation
+    const leaderboard = await Session.aggregate([
+      // BƯỚC 1: Lọc dữ liệu theo thời gian và trạng thái hoàn thành
+      {
+        $match: {
+          completed: true, // Chỉ lấy các session đã hoàn thành
+          started_at: { $gte: start, $lte: end },
+        },
+      },
+
+      // BƯỚC 2: Gom nhóm theo User và tính tổng duration
+      {
+        $group: {
+          _id: "$user_id", // Gom theo ID người dùng
+          totalDuration: { $sum: "$duration" }, // Cộng dồn duration
+          sessionsCount: { $sum: 1 }, // (Tùy chọn) Đếm xem họ đã học bao nhiêu session
+        },
+      },
+
+      // BƯỚC 3: Sắp xếp giảm dần theo tổng thời gian (Người cao nhất lên đầu)
+      {
+        $sort: { totalDuration: -1 },
+      },
+
+      // BƯỚC 4: Lấy Top 50
+      {
+        $limit: 50,
+      },
+
+      // BƯỚC 5: Join với collection 'users' để lấy thông tin (Tên, Avatar...)
+      // Lưu ý: 'users' là tên collection trong MongoDB (thường là số nhiều, viết thường)
+      {
+        $lookup: {
+          from: "users", // Tên collection User trong DB
+          localField: "_id", // Trường _id ở step Group (chính là user_id)
+          foreignField: "_id", // Trường _id bên collection users
+          as: "userInfo", // Tên field tạm chứa kết quả join
+        },
+      },
+
+      // BƯỚC 6: Làm phẳng mảng userInfo (vì lookup trả về mảng)
+      // Nếu user không tồn tại (đã bị xóa), bản ghi này sẽ bị loại bỏ
+      {
+        $unwind: "$userInfo",
+      },
+
+      // BƯỚC 7: Chỉ lấy các trường cần thiết để trả về Frontend
+      {
+        $project: {
+          _id: 1, // User ID
+          totalDuration: 1,
+          sessionsCount: 1,
+          name: "$userInfo.name", // Lấy tên từ object userInfo
+          avatar: "$userInfo.avatar", // Lấy avatar
+          email: "$userInfo.email", // (Tùy chọn)
+        },
+      },
+    ]);
+
+    // 3. Trả về kết quả
+    res.json({
+      data: leaderboard,
+      startTime: start,
+      endTime: end,
+    });
+  } catch (err) {
+    console.error("[getLeaderboard ERROR]", err);
+    res.status(500).json({ error: err.message });
+  }
+};

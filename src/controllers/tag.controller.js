@@ -125,3 +125,26 @@ export const deleteTag = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+export const getTagById = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { tagId } = req.params; // Lấy ID từ URL
+
+    // Tìm tag vừa đúng ID vừa đúng chủ sở hữu
+    const tag = await Tag.findOne({ _id: tagId, user_id: userId });
+
+    if (!tag) {
+      return res.status(404).json({
+        message: "Không tìm thấy tag hoặc bạn không có quyền xem tag này",
+      });
+    }
+
+    return res.status(200).json(tag);
+  } catch (err) {
+    // Nếu ID gửi lên không đúng định dạng ObjectId của MongoDB
+    if (err.kind === "ObjectId") {
+      return res.status(404).json({ message: "Tag ID không hợp lệ" });
+    }
+    return res.status(500).json({ message: err.message });
+  }
+};

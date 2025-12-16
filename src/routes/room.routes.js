@@ -84,7 +84,7 @@ router.get(
 // 7. Cập nhật thông tin phòng (Tên, mô tả, public...)
 // PUT /api/rooms/:id
 // Validate params: id | Validate body: name, description...
-router.put(
+router.patch(
   "/:id",
   validate(roomIdParamSchema, "params"),
   validate(updateRoomSchema, "body"),

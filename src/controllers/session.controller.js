@@ -348,12 +348,12 @@ export const getLeaderboard = async (req, res) => {
       // BƯỚC 7: Chỉ lấy các trường cần thiết để trả về Frontend
       {
         $project: {
-          _id: 1, // User ID
+          id: 1, // User ID
           totalDuration: 1,
           sessionsCount: 1,
           name: "$userInfo.name", // Lấy tên từ object userInfo
           avatar: "$userInfo.avatar", // Lấy avatar
-          email: "$userInfo.email", // (Tùy chọn)
+          username: "$userInfo.username", // (Tùy chọn)
         },
       },
     ]);

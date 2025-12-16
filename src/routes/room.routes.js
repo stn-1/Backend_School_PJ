@@ -1,67 +1,114 @@
 import express from "express";
+
+// 1. IMPORT CONTROLLERS
 import {
-  // createRoom, // (Bỏ comment nếu bạn muốn cho user tạo thêm phòng mới ngoài phòng mặc định)
+  getPublicRooms,
   getRoomBySlug,
+  getRoomByid,
   joinRoom,
   leaveRoom,
   updateRoom,
   getRoomMembers,
   kickMember,
-  getRoomByid,
-  getPublicRooms,
   changeBackground,
 } from "../controllers/room.controller.js";
 
+// 2. IMPORT MIDDLEWARES
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { validate } from "../middlewares/validate.js";
+
+// 3. IMPORT SCHEMAS
+import {
+  roomIdParamSchema,
+  roomSlugParamSchema,
+  updateRoomSchema,
+  kickMemberSchema,
+  changeBackgroundSchema,
+} from "../validators/room.validator.js"; // Nhớ đổi tên file validation cho đúng
 
 const router = express.Router();
 
-/* =========================================
-   MIDDLEWARE
-========================================= */
-// Áp dụng verifyToken cho TOÀN BỘ các routes bên dưới
-// (Bảo vệ tất cả các endpoint của Room)
+// Middleware xác thực (Bắt buộc đăng nhập cho mọi thao tác)
 router.use(verifyToken);
 
 /* =========================================
-   ROUTES
+   PUBLIC / LIST ROOMS
 ========================================= */
 
-// --- 1. Tạo phòng (Optional) ---
-// Nếu bạn muốn user tạo thêm phòng khác ngoài phòng mặc định
-// router.post("/", createRoom);
-
-// --- 2. Thông tin phòng ---
-
-// Lấy thông tin phòng bằng Slug (hoặc room_code)
-// GET /api/rooms/my-cool-room
+// 1. Lấy danh sách phòng công khai
+// GET /api/rooms/public
 router.get("/public", getPublicRooms);
-router.get("/:slug", getRoomBySlug);
-router.get("/id/:id", getRoomByid);
-// Lấy danh sách thành viên trong phòng
-// GET /api/rooms/64b1f.../members
-router.get("/:id/members", getRoomMembers);
 
-// --- 3. Hành động User (Join/Leave) ---
+/* =========================================
+   FIND ROOM (SLUG & ID)
+========================================= */
 
-// Tham gia phòng
-// POST /api/rooms/64b1f.../join
-router.post("/:id/join", joinRoom);
+// 2. Lấy phòng theo Slug
+// GET /api/rooms/slug/:slug
+// Validate params: slug
+router.get(
+  "/slug/:slug",
+  validate(roomSlugParamSchema, "params"),
+  getRoomBySlug
+);
 
-// Rời phòng (Tự động về phòng mặc định)
-// POST /api/rooms/64b1f.../leave
-router.post("/:id/leave", leaveRoom);
+// 3. Lấy phòng theo ID
+// GET /api/rooms/:id
+// Validate params: id (ObjectId)
+router.get("/:id", validate(roomIdParamSchema, "params"), getRoomByid);
 
-// --- 4. Hành động Admin (Update/Kick) ---
+/* =========================================
+   MEMBER ACTIONS (JOIN / LEAVE)
+========================================= */
 
-// Cập nhật thông tin phòng (Tên, mô tả, background...)
-// PATCH /api/rooms/64b1f...
-router.patch("/:id", updateRoom);
+// 4. Tham gia phòng
+// POST /api/rooms/:id/join
+router.post("/:id/join", validate(roomIdParamSchema, "params"), joinRoom);
 
-// Mời thành viên ra khỏi phòng (Kick)
-// POST /api/rooms/64b1f.../kick
-// Body: { "user_id": "..." }
-router.post("/:id/kick", kickMember);
+// 5. Rời phòng
+// POST /api/rooms/:id/leave
+router.post("/:id/leave", validate(roomIdParamSchema, "params"), leaveRoom);
 
-router.patch("/:id/background", changeBackground);
+// 6. Lấy danh sách thành viên trong phòng
+// GET /api/rooms/:id/members
+router.get(
+  "/:id/members",
+  validate(roomIdParamSchema, "params"),
+  getRoomMembers
+);
+
+/* =========================================
+   ADMIN / SETTINGS ACTIONS
+========================================= */
+
+// 7. Cập nhật thông tin phòng (Tên, mô tả, public...)
+// PUT /api/rooms/:id
+// Validate params: id | Validate body: name, description...
+router.put(
+  "/:id",
+  validate(roomIdParamSchema, "params"),
+  validate(updateRoomSchema, "body"),
+  updateRoom
+);
+
+// 8. Đổi hình nền (Background)
+// PATCH /api/rooms/:id/background
+// Validate params: id | Validate body: name, type
+router.patch(
+  "/:id/background",
+  validate(roomIdParamSchema, "params"),
+  validate(changeBackgroundSchema, "body"),
+  changeBackground
+);
+
+// 9. Kick thành viên
+// POST /api/rooms/:id/kick
+// Validate params: id | Validate body: user_id (người bị kick)
+router.post(
+  "/:id/kick",
+  validate(roomIdParamSchema, "params"),
+  validate(kickMemberSchema, "body"),
+  kickMember
+);
+
 export default router;

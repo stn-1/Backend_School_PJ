@@ -7,11 +7,10 @@ import { objectId, cleanText } from "./custom.js";
 export const startSessionSchema = Joi.object({
   plannedDuration: Joi.number()
     .min(0)
-    .max(24 * 3600)
-    .required(),
-  started_at: Joi.date().required(),
-  timer_type: Joi.string().valid("pomodoro", "normal").required(),
-  session_type: Joi.string().valid("study", "work", "other").required(),
+    .max(24 * 3600),
+  started_at: Joi.date(),
+  timer_type: Joi.string().valid("pomodoro", "normal"),
+  session_type: Joi.string().valid("study", "work", "other"),
 });
 
 /* =====================

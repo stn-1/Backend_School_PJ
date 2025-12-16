@@ -55,7 +55,7 @@ router.get(
 // 3. Lấy phòng theo ID
 // GET /api/rooms/:id
 // Validate params: id (ObjectId)
-router.get("/:id", validate(roomIdParamSchema, "params"), getRoomByid);
+router.get("/id/:id", validate(roomIdParamSchema, "params"), getRoomByid);
 
 /* =========================================
    MEMBER ACTIONS (JOIN / LEAVE)

@@ -4,22 +4,24 @@ import User from "../models/user.js";
 import Session from "../models/session.js";
 import mongoose from "mongoose";
 
-// export const getProgress=async(req,res)=>{
-//     try{
-//         const userId = req.user.id;
+export const getBeststreak = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-//         const userProgress = await Progress.findOne({ user: userId });
+    const userProgress = await Progress.findOne({ user: userId });
 
-//         if(!userProgress) {
-//             return res.status(404).json({ message: "Không tìm thấy tiến trình của người dùng này" });
-//         }
+    if (!userProgress) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy tiến trình của người dùng này" });
+    }
 
-//         return res.json({ userProgress });
-//     }catch(err){
-//         console.error(err);
-//         return res.status(500).json({ message: "Server error" });
-//     }
-// }
+    return res.json(userProgress.streak);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 export const getProgress = async (req, res) => {
   try {

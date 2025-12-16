@@ -1,9 +1,13 @@
 import express from "express";
-import { getProgress } from "../controllers/progress.controller.js";
+import {
+  getProgress,
+  getBeststreak,
+} from "../controllers/progress.controller.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 router.use(verifyToken);
+router.get("/", getBeststreak);
 router.get("/:userId", getProgress);
 
 export default router;

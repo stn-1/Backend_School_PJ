@@ -9,8 +9,8 @@ export const startSessionSchema = Joi.object({
     .min(0)
     .max(24 * 3600),
   started_at: Joi.date(),
-  timer_type: Joi.string().valid("pomodoro", "normal"),
-  session_type: Joi.string().valid("study", "work", "other"),
+  timer_type: Joi.string(),
+  session_type: Joi.string(),
 });
 
 /* =====================

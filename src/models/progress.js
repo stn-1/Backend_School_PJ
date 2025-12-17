@@ -19,6 +19,7 @@ const ProgressSchema = new mongoose.Schema({
   current_xp: { type: Number, default: 0 },
   remaining_xp: { type: Number, default: 0 },
   streak: { type: Number, default: 0 },
+  //best_streak: { type: Number, default: 0 },
   total_hours: { type: Number, default: 0 }, //dạng giờ phút
   promo_complete: { type: Number, default: 0 }, //tổng số đã hoàn thành
   week_promo_complete: { type: Number, default: 0 },

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+//phần tag
 const { Schema } = mongoose;
 const TagSchema = new Schema({
   user_id: { type: Schema.Types.ObjectId, ref: "User", required: true },

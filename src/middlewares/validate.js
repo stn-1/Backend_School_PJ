@@ -13,11 +13,10 @@ export const validate = (schema, property = "body") => {
       });
     }
 
-    // 🔥 FIX QUAN TRỌNG
     if (property === "query" || property === "params") {
       Object.assign(req[property], value); // ✅
     } else {
-      req[property] = value; // body thì vẫn OK
+      req[property] = value;
     }
 
     next();

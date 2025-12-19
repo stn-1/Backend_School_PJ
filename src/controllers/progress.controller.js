@@ -1,16 +1,14 @@
-// import Proccess from "../models/progress.js" // LƯU Ý: Tên mô hình thường viết hoa, ví dụ: Progress
-import Progress from "../models/progress.js"; // Đã đổi tên biến import thành Progress để dễ theo dõi
+//xong
+import Progress from "../models/progress.js";
 import User from "../models/user.js";
 import Session from "../models/session.js";
 import mongoose from "mongoose";
-//import user from "../models/user.js";
-//import Progress from "../models/progress.js";
 
 export const getStreakStats = async (req, res) => {
   try {
     const userId = req.user.id || req.user._id;
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    const TIMEZONE_STRING = "+07:00"; // Múi giờ Việt Nam
+    const TIMEZONE_STRING = "+07:00";
 
     // 1. Aggregation: Lấy danh sách ngày tập (Unique & Sorted Tăng dần)
     const datesResult = await Session.aggregate([
@@ -22,7 +20,7 @@ export const getStreakStats = async (req, res) => {
       },
       {
         $project: {
-          // Chuyển sang chuỗi YYYY-MM-DD theo giờ VN
+          // chuyển sang chuỗi ngày tháng năm
           dateStr: {
             $dateToString: {
               format: "%Y-%m-%d",
@@ -33,10 +31,10 @@ export const getStreakStats = async (req, res) => {
         },
       },
       {
-        $group: { _id: "$dateStr" }, // Gom nhóm (loại bỏ trùng lặp trong ngày)
+        $group: { _id: "$dateStr" }, // nhóm lại và bỏ trùng lặp
       },
       {
-        $sort: { _id: 1 }, // Sắp xếp: Cũ -> Mới
+        $sort: { _id: 1 }, // phần sắp xếp cũ mới
       },
     ]);
 
@@ -45,10 +43,10 @@ export const getStreakStats = async (req, res) => {
       return res.status(200).json({ currentStreak: 0, bestStreak: 0 });
     }
 
-    // Convert kết quả DB thành mảng string đơn giản: ['2023-10-01', '2023-10-02', ...]
+    //chuyển thành mảng các string ngày
     const sortedDates = datesResult.map((item) => item._id);
 
-    // 2. Thuật toán "Một vòng lặp" tính cả 2 chỉ số
+    // ta tận dụng để làm streak và
     let tempStreak = 1; // Chuỗi tạm thời đang đếm
     let maxStreak = 1; // Kỷ lục
 
@@ -61,10 +59,10 @@ export const getStreakStats = async (req, res) => {
       const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays === 1) {
-        // Nếu liên tiếp: Tăng chuỗi tạm
+        // nếu tăng liên tiếp thì tăng tạm chuỗi
         tempStreak++;
       } else {
-        // Nếu đứt quãng: Reset chuỗi tạm về 1
+        // đứt thì về 1
         tempStreak = 1;
       }
 
@@ -74,14 +72,10 @@ export const getStreakStats = async (req, res) => {
       }
     }
 
-    // 3. Xác định Current Streak (Chuỗi hiện tại)
-    // tempStreak lúc này chính là chuỗi liên tiếp tính đến ngày CUỐI CÙNG trong list.
-    // NHƯNG: Ta phải check xem ngày cuối cùng đó có phải là Hôm nay hoặc Hôm qua không.
-    // Nếu ngày cuối cùng là 3 ngày trước -> Chuỗi hiện tại đã bị đứt (= 0).
+    //nếu chuỗi đứt ta sẽ so sánh với beststreak để quyết định bestreak
 
     let currentStreak = 0;
 
-    // Lấy ngày hôm nay và hôm qua theo giờ VN
     const now = new Date();
     const nowInVN = new Date(now.getTime() + 7 * 60 * 60 * 1000);
     const todayStr = nowInVN.toISOString().split("T")[0];
@@ -118,13 +112,13 @@ export const getProgress = async (req, res) => {
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
-    // --- CẤU HÌNH TIMEZONE ---
+    // timezone
     const TIMEZONE_OFFSET = 7;
     const TIMEZONE_STRING = "+07:00";
     const now = new Date();
     const nowInVN = new Date(now.getTime() + TIMEZONE_OFFSET * 60 * 60 * 1000);
 
-    // Tính startOfWeek (UTC)
+    // xác định thời điểm bắ đầu tuần
     const currentDayVN = nowInVN.getUTCDay() || 7;
     const startOfWeekVN = new Date(nowInVN);
     startOfWeekVN.setUTCDate(startOfWeekVN.getUTCDate() - currentDayVN + 1);
@@ -133,7 +127,6 @@ export const getProgress = async (req, res) => {
       startOfWeekVN.getTime() - TIMEZONE_OFFSET * 60 * 60 * 1000
     );
 
-    // --- AGGREGATION ---
     const [sessionStats, giftSentResult] = await Promise.all([
       Session.aggregate([
         {
@@ -179,7 +172,7 @@ export const getProgress = async (req, res) => {
                 },
               },
               { $group: { _id: "$dateStr" } },
-              { $sort: { _id: -1 } }, // Sắp xếp: Mới nhất -> Cũ nhất
+              { $sort: { _id: -1 } },
             ],
           },
         },
@@ -192,7 +185,7 @@ export const getProgress = async (req, res) => {
       ]),
     ]);
 
-    // --- XỬ LÝ SỐ LIỆU ---
+    //
     const stats = sessionStats[0];
     const overall = stats.overall[0] || {
       totalPromo: 0,
@@ -200,7 +193,7 @@ export const getProgress = async (req, res) => {
       uniqueDays: [],
     };
     const weekCount = stats.weekly[0] ? stats.weekly[0].count : 0;
-    const sortedDates = stats.datesForStreak.map((d) => d._id); // Mảng ngày: [Hôm nay, Hôm qua, Hôm kia...]
+    const sortedDates = stats.datesForStreak.map((d) => d._id); // mảng ngày thứ tự
     const calculatedGiftsSent = giftSentResult[0]
       ? giftSentResult[0].sent_count
       : 0;
@@ -214,7 +207,6 @@ export const getProgress = async (req, res) => {
         ? parseFloat((calculatedTotalHours / activeDaysCount).toFixed(2))
         : 0;
 
-    // --- LOGIC TÍNH CẢ CURRENT STREAK VÀ BEST STREAK ---
     let currentStreak = 0;
     let bestStreak = 0;
 
@@ -274,12 +266,12 @@ export const getProgress = async (req, res) => {
       }
     }
 
-    // --- TRẢ VỀ JSON ---
+    //dữ liệu trả về cho front-end
     return res.status(200).json({
       success: true,
       data: {
-        streak: currentStreak, // Chuỗi hiện tại
-        best_streak: bestStreak, // Chuỗi kỷ lục
+        streak: currentStreak,
+        best_streak: bestStreak,
         total_hours: calculatedTotalHours,
         promo_complete: overall.totalPromo,
         week_promo_complete: weekCount,
@@ -299,7 +291,7 @@ export const getProgress = async (req, res) => {
 
 export const getGifts = async (req, res) => {
   try {
-    const { userId } = req.params; // lấy userId từ URL
+    const { userId } = req.params;
 
     const progress = await Progress.findOne({ user: userId });
 
@@ -317,10 +309,10 @@ const calculateNextLevelXp = (currentLevel) => {
   const baseXP = 100;
   return Math.floor(baseXP * Math.pow(1.2, currentLevel));
 };
+//cả phần bên dưới có tác dụng cộng thêm phần xp và coin vào cho user khi front-end gọi
 export const increaseUserProgress = async (req, res) => {
   try {
     const userId = req.user.id;
-    // Lưu ý: current_xp ở body request đóng vai trò là lượng XP ĐƯỢC CỘNG THÊM
     const { current_xp: xpToAdd, coins } = req.body;
 
     if (xpToAdd === undefined && coins === undefined) {
@@ -333,39 +325,24 @@ export const increaseUserProgress = async (req, res) => {
     ) {
       return res.status(400).json({ message: "Values must be numbers" });
     }
-
-    // 1. Tìm bản ghi Progress hiện tại
     let progress = await Progress.findOne({ user: userId });
 
     if (!progress) {
       return res.status(404).json({ message: "Progress not found" });
     }
-
-    // 2. Xử lý cộng Coins (nếu có)
     if (coins !== undefined) {
       progress.coins += coins;
     }
 
-    // 3. Xử lý cộng XP và Tăng Level (Logic quan trọng)
     if (xpToAdd !== undefined) {
-      // Cộng XP mới vào XP hiện có
       progress.current_xp += xpToAdd;
-
-      // Xử lý trường hợp khởi tạo nếu remaining_xp đang là 0
       if (progress.remaining_xp === 0) {
         progress.remaining_xp = calculateNextLevelXp(progress.level);
       }
-
-      // Vòng lặp kiểm tra: Nếu current_xp vượt quá remaining_xp thì lên cấp
-      // Dùng while để xử lý trường hợp cộng 1 lượng XP lớn đủ để lên nhiều cấp cùng lúc
       while (progress.current_xp >= progress.remaining_xp) {
-        // Trừ đi lượng XP đã dùng để lên cấp (giữ lại phần dư)
+        // trừ đi só xp có để lên lv
         progress.current_xp -= progress.remaining_xp;
-
-        // Tăng level
         progress.level += 1;
-
-        // Tính toán remaining_xp mới cho level tiếp theo
         progress.remaining_xp = calculateNextLevelXp(progress.level);
       }
     }
@@ -378,7 +355,7 @@ export const increaseUserProgress = async (req, res) => {
       data: {
         level: progress.level,
         current_xp: progress.current_xp,
-        remaining_xp: progress.remaining_xp, // Trả về để FE hiển thị thanh progress
+        remaining_xp: progress.remaining_xp,
         coins: progress.coins,
       },
     });
@@ -402,7 +379,7 @@ export const getUserProgress = async (req, res) => {
       data: {
         level: progress.level,
         current_xp: progress.current_xp,
-        remaining_xp: progress.remaining_xp, // Trả về để FE hiển thị thanh progress
+        remaining_xp: progress.remaining_xp,
         coins: progress.coins,
       },
     });

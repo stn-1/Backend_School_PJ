@@ -31,11 +31,7 @@ const FriendshipSchema = new Schema({
 // Unique index để đảm bảo không có duplicate friendship
 FriendshipSchema.index({ user1: 1, user2: 1 }, { unique: true });
 
-// -------------------------------------------
-// 🧩 Middleware Mongoose v7 — KHÔNG dùng next()
-// -------------------------------------------
-
-// 1. Tự động sắp xếp user1 < user2 theo ObjectId string
+// tự động sắp xếp theo tên
 FriendshipSchema.pre("validate", function () {
   if (this.user1 && this.user2) {
     const a = this.user1.toString();
@@ -49,7 +45,6 @@ FriendshipSchema.pre("validate", function () {
   }
 });
 
-// 2. Auto-update updated_at mỗi lần save
 FriendshipSchema.pre("save", function () {
   this.updated_at = new Date();
 });

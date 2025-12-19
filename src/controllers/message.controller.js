@@ -1,7 +1,8 @@
+//xong
 import Message from "../models/message.js";
 import Room from "../models/room.js";
 
-// Lấy lịch sử tin nhắn của room
+// logic lấy lịch sử tin nhắn của user mỗi lần trả về 30 tin
 export const getRoomMessages = async (req, res) => {
   try {
     const roomId = req.params.roomId;
@@ -9,6 +10,7 @@ export const getRoomMessages = async (req, res) => {
     const before = req.query.before ? new Date(req.query.before) : new Date();
 
     const room = await Room.findById(roomId);
+    //phần dưới là để query trong db nhưng có thêm before để chỉ lấy những tin trước before
     if (!room) return res.status(404).json({ message: "Room not found" });
 
     const messages = await Message.find({
@@ -16,11 +18,10 @@ export const getRoomMessages = async (req, res) => {
       on_model: "Room",
       createdAt: { $lt: before },
     })
-      .sort({ createdAt: -1 }) // mới nhất lên đầu
+      .sort({ createdAt: -1 })
       .limit(limit)
-      .populate("sender_id", "username avatar") // lấy tên + avatar
+      .populate("sender_id", "username avatar")
       .lean();
-    // Đảo mảng để hiện từ cũ → mới
     messages.reverse();
     const message2 = messages.map((msg) => ({
       id: msg._id,

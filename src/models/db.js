@@ -1,8 +1,7 @@
-import mongoose from 'mongoose';
-
+import mongoose from "mongoose";
+//kết nối db
 const connectDB = async () => {
   try {
-    // Lấy chuỗi kết nối từ file .env
     const conn = await mongoose.connect(process.env.Mongodb_auth);
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);

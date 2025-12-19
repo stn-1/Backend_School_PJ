@@ -28,40 +28,35 @@ dotenv.config();
 
 const app = express();
 
-// ======= Paths =======
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// ======= HTTP Server + Socket.io =======
+//thiết lập socket
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "https://rizumu-sage.vercel.app"], // domain frontend của bạn
+    origin: ["http://localhost:5173", "https://rizumu-sage.vercel.app"],
     methods: ["GET", "POST"],
-    credentials: true, // cho phép gửi cookie
+    credentials: true,
   },
 });
 chatSocket(io);
 
-// ======= Middlewares =======
-app.use(helmet()); // Thêm header bảo mật
+//hemet giúp chống Clickjacking và MIME Sniffing
+app.use(helmet());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://rizumu-sage.vercel.app"], // domain FE
-    credentials: true, // bắt buộc nếu dùng cookie
+    origin: ["http://localhost:5173", "https://rizumu-sage.vercel.app"],
+    credentials: true,
   })
 );
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());
-//app.use(xss());
-//app.use(mongoSanitize());
 
-// Static files
+//phần dể test phần chat
 app.use(express.static(path.join(__dirname, "./public")));
 console.log("STATIC PATH:", path.join(__dirname, "./public"));
 
-// ======= Routes =======
 app.use("/api/health", homeRoute);
 app.use("/api/auth", authRoutes);
 app.use("/api/friend", friendRoutes);
@@ -70,8 +65,7 @@ app.use("/api", messageRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/session", sessionRoutes);
 app.use("/api/tags", tagRoute);
-
-// ======= Start server =======
+//bắt đầu server
 const PORT = process.env.PORT || 3000;
 
 connectDB()

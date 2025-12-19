@@ -1,19 +1,19 @@
-// controllers/auth.controller.js
+//xong
 import User from "../models/user.js";
 import jwt from "jsonwebtoken";
 import Progress from "../models/progress.js";
 import { v2 as cloudinary } from "cloudinary";
 import Room from "../models/room.js";
-// --- CONFIG ---
-// Nên để trong file .env thực tế
+//phần lấy token
 const ACCESS_TOKEN_SECRET =
   process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
 const REFRESH_TOKEN_SECRET =
   process.env.REFRESH_TOKEN_SECRET || "refresh_secret_456";
 const ACCESS_TOKEN_EXPIRES = "15m";
 const REFRESH_TOKEN_EXPIRES = "7d";
-// -------------------- HELPERS --------------------
-// Tạo Access Token (để gọi API)
+//các hàm helper
+//logic: Access hết hạn front-end sẽ tạo ra access mới từ refresh token nếu bị chiếm access token hacker sẽ chỉ dùng được trong 15p
+// Tạo Access Token từ các key ở trên
 function signAccessToken(user) {
   return jwt.sign(
     { id: user._id, username: user.username },
@@ -22,14 +22,14 @@ function signAccessToken(user) {
   );
 }
 
-// Tạo Refresh Token (để cấp lại Access Token)
+// Tạo refreshtoken từ jwwt
 function signRefreshToken(user) {
   return jwt.sign({ id: user._id }, REFRESH_TOKEN_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRES,
   });
 }
 
-// -------------------- REGISTER --------------------
+//đăng kí
 export const register = async (req, res) => {
   try {
     const { username, password, name } = req.body;
@@ -46,25 +46,24 @@ export const register = async (req, res) => {
       name: name || "",
     });
 
-    // Virtual field xử lý hash pass
+    //sử lý phần hash pass ở db
     user.password = password;
 
     // Tạo 2 token
     const accessToken = signAccessToken(user);
     const refreshToken = signRefreshToken(user);
 
-    // Lưu Refresh Token vào DB
     user.refreshToken = refreshToken;
-    user.status = "online"; // Đăng ký xong online luôn
+    user.status = "online";
 
     await user.save();
-    // 👉 Tạo Progress mặc định
+
     await Progress.create({
       user: user._id,
       coins: 0,
       level: 1,
       current_xp: 0,
-      remaining_xp: 100, // ví dụ để lên level tiếp theo
+      remaining_xp: 100,
       streak: 0,
       total_hours: 0,
       promo_complete: 0,
@@ -101,7 +100,7 @@ export const register = async (req, res) => {
         country: user.country,
       },
       access_token: accessToken,
-      refresh_token: refreshToken, // Client cần lưu cái này an toàn
+      refresh_token: refreshToken,
     });
   } catch (err) {
     console.error("[REGISTER ERROR]", err);
@@ -109,7 +108,6 @@ export const register = async (req, res) => {
   }
 };
 
-// -------------------- LOGIN --------------------
 export const login = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -123,14 +121,13 @@ export const login = async (req, res) => {
     const ok = await user.comparePassword(password);
     if (!ok) return res.status(400).json({ message: "Incorrect password" });
 
-    // Tạo mới cặp token
+    //phần tạo mới nếu người dùng đang nhập lại hacker sẽ mất session đang có
     const accessToken = signAccessToken(user);
     const refreshToken = signRefreshToken(user);
 
-    // Cập nhật DB: status và token mới
+    //cập nhật
     user.status = "online";
-    user.refreshToken = refreshToken; // Ghi đè token cũ (nếu có) -> token cũ ở máy khác sẽ vô hiệu
-    await user.save();
+    user.refreshToken = refreshToken;
     return res.json({
       message: "Login success",
       data: {
@@ -153,17 +150,15 @@ export const login = async (req, res) => {
   }
 };
 
-// -------------------- REFRESH TOKEN (NEW) --------------------
-// API này được gọi khi Access Token hết hạn (Client nhận lỗi 401 -> gọi API này)
+//phần lấy access token từ refresh token
 export const requestRefreshToken = async (req, res) => {
   try {
-    // Lấy refresh token từ body (hoặc cookie nếu bạn làm cookie)
     const { refresh_token } = req.body;
 
     if (!refresh_token)
       return res.status(401).json({ message: "No refresh token provided" });
 
-    // 1. Verify xem token có hợp lệ (chưa hết hạn, đúng secret) không
+    // sử dụng jwt để xác thự refresh token
     let decoded;
     try {
       decoded = jwt.verify(refresh_token, REFRESH_TOKEN_SECRET);
@@ -173,21 +168,15 @@ export const requestRefreshToken = async (req, res) => {
         .json({ message: "Invalid or expired refresh token" });
     }
 
-    // 2. Tìm user trong DB
     const user = await User.findById(decoded.id);
     if (!user) return res.status(403).json({ message: "User not found" });
 
-    // 3. Quan trọng: So sánh token gửi lên với token trong DB
-    // Nếu khác nhau (User đã logout hoặc đăng nhập nơi khác), từ chối
+    //nếu khác thì từ chối mọi api gửi đến yêu cầu phần xác thực
     if (user.refreshToken !== refresh_token) {
       return res.status(403).json({ message: "Invalid refresh token" });
     }
 
-    // 4. Nếu mọi thứ OK -> Cấp Access Token MỚI
     const newAccessToken = signAccessToken(user);
-
-    // (Tùy chọn) Có thể cấp luôn Refresh Token mới để xoay vòng (Rotation)
-    // Ở đây giữ nguyên refresh token cũ cho đơn giản
 
     return res.json({
       access_token: newAccessToken,
@@ -198,14 +187,12 @@ export const requestRefreshToken = async (req, res) => {
   }
 };
 
-// -------------------- GET PROFILE --------------------
+//lấy profile
 export const getProfile = async (req, res) => {
   try {
-    // req.user được gán từ middleware verify ACCESS_TOKEN
     const user = await User.findById(req.user.id).select(
-      "-password_hash -refreshToken"
+      "-password_hash -refreshToken" //loại bỏ các trường nguy hiểm
     );
-    //chỗ sửa
     const data = user;
     return res.json({ data });
   } catch (err) {
@@ -213,16 +200,15 @@ export const getProfile = async (req, res) => {
   }
 };
 
-// -------------------- LOGOUT --------------------
+//đăng xuất
 export const logout = async (req, res) => {
   try {
-    // Khi logout, ta xóa refresh token trong DB
-    // Lần sau kẻ trộm có refresh token cũ cũng không đổi được access token mới
+    //khi đăng xuất ta xóa refresh token và set lại status
     const user = await User.findById(req.user.id);
 
     if (user) {
       user.status = "offline";
-      user.refreshToken = null; // Xóa token
+      user.refreshToken = null;
       await user.save();
     }
 
@@ -231,10 +217,10 @@ export const logout = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-//phần upload link ảnh
+//phần upload link ảnh sử dụng cloudy
 export const updateAvatar = async (req, res) => {
   try {
-    const userId = req.user.id; // Lấy từ auth middleware
+    const userId = req.user.id;
     const user = await User.findById(userId);
 
     if (!req.file) return res.status(400).json({ error: "No image uploaded" });
@@ -248,7 +234,6 @@ export const updateAvatar = async (req, res) => {
       }
     }
 
-    // Cập nhật dữ liệu mới
     user.avatar = req.file.path;
     user.avatar_public_id = req.file.filename;
     await user.save();
@@ -259,18 +244,16 @@ export const updateAvatar = async (req, res) => {
     res.status(500).json({ error: "Upload failed" });
   }
 };
-// controllers/auth.controller.js -> Thêm vào cuối file
 
 export const updateProfile = async (req, res) => {
   try {
-    const userId = req.user.id; // Lấy từ token
-    // Lấy các trường cho phép sửa
+    const userId = req.user.id;
+    //chỗ được phép sửa tránh đụng đến một số thành phần quan trọng
     const { name, username, country, bio, password, newPassword } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
-
-    // 1. Cập nhật username (có check trùng)
+    //nếu thay đổi username thì phải check trùng
     if (username && username !== user.username) {
       const existingUser = await User.findOne({ username });
       if (existingUser) {
@@ -279,20 +262,17 @@ export const updateProfile = async (req, res) => {
       user.username = username;
     }
 
-    // 2. Cập nhật thông tin cơ bản
     if (name !== undefined) user.name = name;
     if (bio !== undefined) user.bio = bio; // Nếu bạn đã thêm field bio vào Model
     if (country !== undefined) user.country = country;
-    // 3. Cập nhật Mật khẩu
-    // Logic: User phải gửi password MỚI để đổi.
-    // (Tốt hơn là bắt user gửi cả password CŨ để xác nhận, nhưng làm đơn giản trước)
+
     if (password) {
       if (password.length < 6) {
         return res
           .status(400)
           .json({ message: "Password must be at least 6 characters" });
       }
-      // Gán vào virtual field, hook pre('save') sẽ tự hash
+      // phần này hash tự động bên db
       user.password = password;
     }
 
@@ -312,7 +292,6 @@ export const updateProfile = async (req, res) => {
     });
   } catch (err) {
     console.error("[UPDATE PROFILE ERROR]", err);
-    // Bắt lỗi validation từ Mongoose (ví dụ lỗi password ngắn trong virtual set)
     if (err.message.includes("Password must be at least")) {
       return res.status(400).json({ message: err.message });
     }
@@ -327,7 +306,7 @@ export const getProfilebyID = async (req, res) => {
 
     const data = await User.findById(userId).select(
       "-password -password_hash -refreshToken -__v -avatar_public_id"
-    ); // 👈 Sửa ở đây
+    ); //loại bỏ các trường nguy hiểm
 
     if (!data)
       return res.status(404).json({ message: "Không tìm thấy người dùng" });
@@ -341,29 +320,22 @@ export const getProfilebyID = async (req, res) => {
 // tìm kiếm theo username
 export const searchUsers = async (req, res) => {
   try {
-    // Lấy từ khóa tìm kiếm từ query param (VD: /api/users/search?q=abc)
     const { q } = req.query;
-    const currentUserId = req.user.id; // Lấy ID người đang tìm kiếm (từ middleware xác thực)
-
-    // 1. Validate đầu vào
+    const currentUserId = req.user.id;
     if (!q || q.trim() === "") {
       return res
         .status(400)
         .json({ message: "Vui lòng nhập từ khóa tìm kiếm" });
     }
 
-    // 2. Thực hiện tìm kiếm
     const users = await User.find({
-      // Tìm username có chứa từ khóa 'q', 'i' là không phân biệt hoa thường
       username: { $regex: q.trim(), $options: "i" },
 
-      // Loại bỏ user hiện tại khỏi kết quả tìm kiếm (nếu cần)
       _id: { $ne: currentUserId },
     })
-      // 3. Chỉ lấy các trường cần thiết (Select fields) để bảo mật
+
       .select("username avatar name")
-      // Giới hạn số lượng kết quả để tối ưu performance (ví dụ lấy 10 người)
-      .limit(10);
+      .limit(10); //chỉ lấy 10 người
 
     return res.status(200).json(users);
   } catch (err) {

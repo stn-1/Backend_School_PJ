@@ -1,11 +1,12 @@
+//xong
 import Friendship from "../models/friendship.js";
 import Conversation from "../models/conversation.js";
-import User from "../models/user.js"; // Import User nếu cần check tồn tại
+import User from "../models/user.js";
 
-// 1. Gửi lời mời kết bạn
+//gửi lời mời
 export const sendFriendRequest = async (req, res) => {
   try {
-    const requesterId = req.user?._id || req.user?.id; // Lấy từ JWT Middleware
+    const requesterId = req.user?._id || req.user?.id; //do đặt tên không thống nhất
     const { recipientId } = req.body;
     console.log(requesterId);
     if (requesterId.toString() === recipientId) {
@@ -14,8 +15,7 @@ export const sendFriendRequest = async (req, res) => {
         .json({ message: "Không thể kết bạn với chính mình" });
     }
 
-    // Thử tạo Friendship mới
-    // Nhờ pre('validate') hook trong Model của bạn, user1 và user2 sẽ tự sắp xếp
+    //gọi mongo để tạo ra một Friendship mới
     try {
       const newFriendship = await Friendship.create({
         user1: requesterId,
@@ -30,9 +30,7 @@ export const sendFriendRequest = async (req, res) => {
         friendship: newFriendship,
       });
     } catch (err) {
-      // Bắt lỗi trùng lặp (Duplicate Key E11000) do Index {user1: 1, user2: 1} unique
       if (err.code === 11000) {
-        // Kiểm tra trạng thái hiện tại để báo lỗi chính xác hơn
         const existing = await Friendship.findOne({
           $or: [
             { user1: requesterId, user2: recipientId },
@@ -51,14 +49,13 @@ export const sendFriendRequest = async (req, res) => {
             .status(400)
             .json({ message: "Không thể gửi lời mời (Blocked)." });
       }
-      throw err; // Ném các lỗi khác
+      throw err;
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-// 2. Chấp nhận lời mời (Kèm tạo Conversation)
 export const acceptFriendRequest = async (req, res) => {
   try {
     const userId = req.user._id || req.user?.id;
@@ -68,8 +65,7 @@ export const acceptFriendRequest = async (req, res) => {
     if (!friendship)
       return res.status(404).json({ message: "Không tìm thấy lời mời" });
 
-    // VALIDATION QUAN TRỌNG:
-    // Chỉ người NHẬN mới được accept. Người gửi (requester) không được tự accept.
+    //chỉ người gửi mới được chấp nhận lời mời
     if (friendship.requester.toString() === userId.toString()) {
       return res
         .status(403)
@@ -80,20 +76,17 @@ export const acceptFriendRequest = async (req, res) => {
       return res.status(400).json({ message: "Lời mời không khả dụng" });
     }
 
-    // Cập nhật trạng thái
     friendship.status = "accepted";
     friendship.updated_at = new Date();
     await friendship.save();
 
-    // --- LOGIC TỰ ĐỘNG TẠO CONVERSATION ---
-    // Để sau khi accept, frontend có thể redirect sang khung chat ngay
     const members = [friendship.user1, friendship.user2];
 
-    // Kiểm tra xem Conversation đã tồn tại chưa (dùng $all để không quan tâm thứ tự)
     let conversation = await Conversation.findOne({
       members: { $all: members },
     });
 
+    //tạo hội thoại giữa hai người
     if (!conversation) {
       conversation = await Conversation.create({ members });
     }
@@ -112,13 +105,13 @@ export const acceptFriendRequest = async (req, res) => {
 export const removeFriendship = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { friendshipId } = req.params; // Truyền qua URL param
+    const { friendshipId } = req.params;
 
     const friendship = await Friendship.findById(friendshipId);
     if (!friendship)
       return res.status(404).json({ message: "Không tìm thấy dữ liệu" });
 
-    // Check quyền: Chỉ user1 hoặc user2 mới được xóa
+    // Chỉ user1 hoặc user2 mới được xóa
     if (
       friendship.user1.toString() !== userId.toString() &&
       friendship.user2.toString() !== userId.toString()
@@ -136,13 +129,11 @@ export const removeFriendship = async (req, res) => {
   }
 };
 
-// 4. Lấy danh sách lời mời kết bạn (Received Requests)
+//lấy danh sach lời mời kết bạn
 export const getFriendRequests = async (req, res) => {
   try {
     const userId = req.user.id;
-    // Logic: Tìm friendship status 'pending' VÀ mình KHÔNG PHẢI là requester
-    // Vì user1/user2 đã bị sort, nên mình có thể nằm ở user1 hoặc user2
-    // Nhưng điều kiện tiên quyết là: requester != mình
+    //tìm request có status là pending
 
     const requests = await Friendship.find({
       $or: [{ user1: userId }, { user2: userId }],
@@ -155,7 +146,7 @@ export const getFriendRequests = async (req, res) => {
   }
 };
 
-// 5. Lấy danh sách bạn bè (My Friends)
+// lấy lại danh sách bạn bè
 export const getFriendList = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -167,12 +158,12 @@ export const getFriendList = async (req, res) => {
       .populate("user1", "username avatar name status")
       .populate("user2", "username avatar name status");
 
-    // Map dữ liệu để trả về list clean (chỉ chứa thông tin người bạn)
+    // chỉ trả về bạn mình dưới là logic kiểm tra
     const friends = friendships.map((f) => {
       if (f.user1._id.toString() === userId.toString()) {
-        return { ...f.user2.toObject(), friendshipId: f._id }; // Trả về user2
+        return { ...f.user2.toObject(), friendshipId: f._id };
       } else {
-        return { ...f.user1.toObject(), friendshipId: f._id }; // Trả về user1
+        return { ...f.user1.toObject(), friendshipId: f._id };
       }
     });
 

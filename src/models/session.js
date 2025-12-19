@@ -1,19 +1,19 @@
 import mongoose from "mongoose";
 const { Schema } = mongoose;
-
+//phần này là các phiên pomodoro của người dùng được tách riêng và sử dụng hai index do
+//phần này luôn được duyệt thường xuyên và một user có thể có rất nhiều session nên rất cần index
 const SessionSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   completed: { type: Boolean, required: true },
   started_at: { type: Date, required: true },
-  ended_at: { type: Date }, // Chỉ có khi session hoàn thành
+  ended_at: { type: Date },
   timer_type: { type: String },
   session_type: { type: String },
-  //duration: { type: Number, default: 0 }, // tính bằng giây hoặc phút
 
-  plannedDuration: { type: Number }, // VD: 25 phút (mục tiêu)
-  duration: { type: Number, default: 0 }, // thời gian thực tế tập trung, không tính pause
+  plannedDuration: { type: Number },
+  duration: { type: Number, default: 0 },
 
-  notes: { type: String }, // Ghi chú của user (optional)
+  notes: { type: String },
 });
 SessionSchema.index({ user_id: 1, completed: 1, started_at: 1 });
 SessionSchema.index({ completed: 1, started_at: 1 });

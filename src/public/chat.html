@@ -59,7 +59,6 @@
         padding: 8px 12px;
       }
 
-      /* -- 2. TIN NHẮN CỦA MÌNH (ME) -- */
       .msg-me {
         align-self: flex-end;
       }
@@ -111,11 +110,11 @@
         text-align: center;
         margin-top: 50px;
       }
-      
+
       /* Style riêng cho ô input login */
       #login input {
-        display: block; 
-        margin: 10px auto; 
+        display: block;
+        margin: 10px auto;
         width: 300px;
         flex: none; /* Reset flex property của input chung */
       }
@@ -125,13 +124,19 @@
     <!-- 1. Màn hình nhập thông tin (Đã sửa) -->
     <div id="login">
       <h3>Nhập thông tin để test</h3>
-      
+
       <!-- Nhập Room ID -->
-      <input id="roomIdInput" placeholder="Paste Room ID (MongoDB _id) vào đây..." />
-      
+      <input
+        id="roomIdInput"
+        placeholder="Paste Room ID (MongoDB _id) vào đây..."
+      />
+
       <!-- Nhập User ID -->
-      <input id="userIdInput" placeholder="Paste User ID (MongoDB _id) vào đây..." />
-      
+      <input
+        id="userIdInput"
+        placeholder="Paste User ID (MongoDB _id) vào đây..."
+      />
+
       <!-- //<button onclick="connect()">Vào Chat</button> -->
       <button onclick="alert('Test')">Test Button</button>
     </div>
@@ -150,7 +155,16 @@
         "
       >
         <span>Chat Room</span>
-        <button onclick="location.reload()" style="padding: 5px 10px; font-size: 12px; background: rgba(0,0,0,0.2);">Thoát</button>
+        <button
+          onclick="location.reload()"
+          style="
+            padding: 5px 10px;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.2);
+          "
+        >
+          Thoát
+        </button>
       </div>
       <div id="messages"></div>
       <div class="input-area">
@@ -166,11 +180,11 @@
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
     <script>
       let socket;
-      let myId = ""; 
+      let myId = "";
       let roomId = ""; // Không fix cứng nữa, chờ nhập từ input
       let loadingHistory = false;
       let hasMore = true;
-      const limit = 20; 
+      const limit = 20;
 
       // -------------------------
       // 1. Kết nối socket
@@ -204,17 +218,17 @@
 
         socket.on("connect", () => {
           console.log("Đã kết nối Socket!");
-          
+
           // Ẩn màn hình Login, hiện Chat
           document.getElementById("login").style.display = "none";
           document.getElementById("chat-container").style.display = "flex";
 
           // Emit event join_room nếu backend yêu cầu (Thường là cần thiết)
-          // socket.emit("join_room", roomId); 
+          // socket.emit("join_room", roomId);
 
           // Xóa tin nhắn cũ (nếu có do lần test trước)
           document.getElementById("messages").innerHTML = "";
-          
+
           // Load lịch sử tin nhắn
           loadMessages();
         });
@@ -236,7 +250,7 @@
         try {
           console.log("Đang gọi API lấy tin nhắn:", url);
           const res = await fetch(url);
-          
+
           if (!res.ok) {
             throw new Error(`Lỗi API: ${res.status} - ${res.statusText}`);
           }
@@ -245,12 +259,11 @@
 
           // prepend tin nhắn cũ lên đầu
           if (data.messages && Array.isArray(data.messages)) {
-             data.messages.forEach(msg => addMessageToScreen(msg, true));
-             hasMore = data.hasMore;
+            data.messages.forEach((msg) => addMessageToScreen(msg, true));
+            hasMore = data.hasMore;
           } else {
-             console.warn("API không trả về mảng messages hợp lệ", data);
+            console.warn("API không trả về mảng messages hợp lệ", data);
           }
-
         } catch (err) {
           console.error("Lỗi tải tin nhắn:", err);
           alert("Không lấy được tin nhắn. Kiểm tra lại Room ID.");
@@ -267,28 +280,32 @@
         const div = document.createElement("div");
 
         const isMe = data.senderId === myId;
-        const displayName = isMe ? "Me" : (data.senderName || "User");
+        const displayName = isMe ? "Me" : data.senderName || "User";
 
-        div.className = isMe ? "message-wrapper msg-me" : "message-wrapper msg-other";
-        
+        div.className = isMe
+          ? "message-wrapper msg-me"
+          : "message-wrapper msg-other";
+
         // Xử lý hiển thị nội dung tin nhắn an toàn (tránh XSS)
-        const safeContent = data.content ? data.content.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
+        const safeContent = data.content
+          ? data.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          : "";
 
         div.innerHTML = `
             <div class="name">${displayName}</div>
             <div class="bubble">${safeContent}</div>
         `;
-        
+
         // Lưu createdAt vào dataset để dùng cho infinite scroll
         if (data.createdAt) {
-            div.dataset.createdAt = data.createdAt;
+          div.dataset.createdAt = data.createdAt;
         }
 
         if (prepend) {
           list.prepend(div);
         } else {
           list.appendChild(div);
-          list.scrollTop = list.scrollHeight; 
+          list.scrollTop = list.scrollHeight;
         }
       }
 
@@ -298,17 +315,17 @@
       function send() {
         const input = document.getElementById("msgInput");
         const text = input.value.trim();
-        
+
         if (text && socket) {
           // Gửi sự kiện lên server
           // Lưu ý: Cấu trúc data gửi đi phải khớp với Backend
           const msgData = {
             roomId: roomId,
             content: text,
-            senderId: myId // Nếu backend cần
+            senderId: myId, // Nếu backend cần
           };
 
-          socket.emit("send_message", msgData); 
+          socket.emit("send_message", msgData);
           input.value = "";
         }
       }
@@ -326,11 +343,10 @@
           const firstMsg = list.firstChild;
           const cursor = firstMsg?.dataset?.createdAt || null;
           if (cursor) {
-              loadMessages(cursor);
+            loadMessages(cursor);
           }
         }
       });
     </script>
-
   </body>
 </html>

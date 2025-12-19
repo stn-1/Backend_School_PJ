@@ -5,7 +5,8 @@ import mongoose from "mongoose";
 // Bắt đầu session mới
 export const startSession = async (req, res) => {
   try {
-    const { plannedDuration, started_at, timer_type, session_type } = req.body;
+    const { plannedDuration, started_at, timer_type, session_type, tag_id } =
+      req.body;
     const user_id = req.user.id;
 
     const session = new Session({

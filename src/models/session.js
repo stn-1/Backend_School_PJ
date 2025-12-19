@@ -9,10 +9,9 @@ const SessionSchema = new mongoose.Schema({
   ended_at: { type: Date },
   timer_type: { type: String },
   session_type: { type: String },
-
   plannedDuration: { type: Number },
   duration: { type: Number, default: 0 },
-
+  tag_id: { type: String, default: null },
   notes: { type: String },
 });
 SessionSchema.index({ user_id: 1, completed: 1, started_at: 1 });

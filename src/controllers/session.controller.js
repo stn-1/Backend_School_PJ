@@ -17,7 +17,8 @@ export const startSession = async (req, res) => {
       duration: 0,
       timer_type: timer_type,
       session_type: session_type,
-      notes: "con kek",
+      notes: "",
+      tag_id: tag_id,
     });
 
     await session.save();

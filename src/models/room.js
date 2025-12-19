@@ -24,7 +24,6 @@ const RoomSchema = new Schema(
       default: () => nanoid(ROOM_CODE_LENGTH),
     },
 
-    // --------------------------------------------------------
 
     owner_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
     is_public: { type: Boolean, default: false },

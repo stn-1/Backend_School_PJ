@@ -13,13 +13,13 @@ import { verifyToken } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 router.use(verifyToken);
-router.patch("/stats", increaseUserProgress);
+router.get("/gift", getGifts);
+router.get("/gift/:userId", getGiftsbyId);
+router.post("/gift", sendGift);
 router.get("/stats", getUserProgress);
+router.patch("/stats", increaseUserProgress);
 router.get("/stats/:userId", getUserProgressbyId);
 router.get("/", getStreakStats);
 router.get("/:userId", getProgress);
-router.get("/gift", getGifts);
-router.post("/gift", sendGift);
-router.get("/gift/:userId", getGiftsbyId);
 
 export default router;

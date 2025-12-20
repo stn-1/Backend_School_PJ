@@ -388,3 +388,26 @@ export const getUserProgress = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+export const getUserProgressbyId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const progress = await Progress.findOne({ user: userId });
+    if (!progress) {
+      return res.status(404).json({ message: "Progress not found" });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        level: progress.level,
+        current_xp: progress.current_xp,
+        remaining_xp: progress.remaining_xp,
+        coins: progress.coins,
+      },
+    });
+  } catch (err) {
+    console.error("Get User Progress Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};

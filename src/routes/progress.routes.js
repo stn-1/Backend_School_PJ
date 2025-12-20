@@ -20,6 +20,6 @@ router.get("/", getStreakStats);
 router.get("/:userId", getProgress);
 router.get("/gift", getGifts);
 router.post("/gift", sendGift);
-router.get("/gift/userId", getGiftsbyId);
+router.get("/gift/:userId", getGiftsbyId);
 
 export default router;

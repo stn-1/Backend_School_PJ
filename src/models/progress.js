@@ -3,7 +3,7 @@ const { Schema } = mongoose;
 
 // Subschema cho mỗi gift
 const GiftSchema = new mongoose.Schema({
-  receiveId: { type: String, required: true },
+  //receiveId: { type: String, required: true },
   senderId: { type: String, required: true },
   icon: { type: String, required: true },
   claimed: { type: Boolean, default: false },

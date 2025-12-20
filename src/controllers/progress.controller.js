@@ -288,20 +288,114 @@ export const getProgress = async (req, res) => {
     });
   }
 };
-
 export const getGifts = async (req, res) => {
   try {
-    const { userId } = req.params;
-
-    const progress = await Progress.findOne({ user: userId });
+    const userId = req.user.id;
+    const progress = await Progress.findOne({ user: userId }).populate({
+      path: "gifts.senderId",
+      select: "name avatar username",
+    });
 
     if (!progress) {
       return res.status(404).json({ message: "User progress not found" });
     }
 
-    return res.json({ gifts: progress.gifts });
+    // 2. Làm phẳng dữ liệu bằng .map()
+    const flattenedGifts = progress.gifts.map((gift) => {
+      return {
+        id: gift._id,
+        icon: gift.icon,
+        claimed: gift.claimed,
+        claimedAt: gift.claimedAt,
+        createdAt: gift.createdAt,
+        senderId: gift.senderId?._id || null,
+        senderName: gift.senderId?.name || "Người dùng ẩn danh",
+      };
+    });
+
+    // Trả về danh sách đã làm phẳng
+    return res.json({
+      data: flattenedGifts,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("[getGifts ERROR]", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+export const getGiftsbyId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const progress = await Progress.findOne({ user: userId }).populate({
+      path: "gifts.senderId",
+      select: "name avatar username",
+    });
+
+    if (!progress) {
+      return res.status(404).json({ message: "User progress not found" });
+    }
+
+    const flattenedGifts = progress.gifts.map((gift) => {
+      return {
+        id: gift._id,
+        icon: gift.icon,
+        claimed: gift.claimed,
+        claimedAt: gift.claimedAt,
+        createdAt: gift.createdAt,
+        senderId: gift.senderId?._id || null,
+        senderName: gift.senderId?.name || "Người dùng ẩn danh",
+      };
+    });
+
+    return res.json({
+      data: flattenedGifts,
+    });
+  } catch (error) {
+    console.error("[getGifts ERROR]", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const sendGift = async (req, res) => {
+  try {
+    const { receiverId, icon } = req.body;
+    const senderId = req.user.id;
+
+    if (receiverId === senderId) {
+      return res
+        .status(400)
+        .json({ message: "You cannot send a gift to yourself" });
+    }
+
+    const receiverProgress = await Progress.findOne({ user: receiverId });
+    if (!receiverProgress) {
+      return res.status(404).json({ message: "Receiver progress not found" });
+    }
+
+    const newGift = {
+      senderId: senderId,
+      icon: icon,
+      claimed: false,
+      createdAt: new Date(),
+    };
+
+    await Progress.findOneAndUpdate(
+      { user: receiverId },
+      { $push: { gifts: newGift } }
+    );
+
+    await Progress.findOneAndUpdate(
+      { user: senderId },
+      { $inc: { gifts_sent: 1 } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Gift sent successfully!",
+      gift: newGift,
+    });
+  } catch (error) {
+    console.error("[sendGift ERROR]", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

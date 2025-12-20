@@ -1,7 +1,7 @@
 import Session from "../models/session.js";
 import User from "../models/user.js";
 import mongoose from "mongoose";
-
+import Friendship from "../models/friendship.js";
 // Bắt đầu session mới
 export const startSession = async (req, res) => {
   try {
@@ -325,6 +325,81 @@ export const getLeaderboard = async (req, res) => {
     });
   } catch (err) {
     console.error("[getLeaderboard ERROR]", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+export const getLeaderboardFriends = async (req, res) => {
+  try {
+    const { startTime, endTime } = req.query;
+    const userId = req.user.id;
+
+    if (!startTime || !endTime) {
+      return res
+        .status(400)
+        .json({ error: "Missing params: startTime or endTime" });
+    }
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const friendships = await Friendship.find({
+      $or: [{ requester: userId }, { receiver: userId }],
+      status: "accepted",
+    });
+
+    const friendIds = friendships.map((f) => {
+      return f.requester.toString() === userId.toString()
+        ? f.receiver
+        : f.requester;
+    });
+
+    friendIds.push(new mongoose.Types.ObjectId(userId));
+
+    const leaderboard = await Session.aggregate([
+      {
+        $match: {
+          completed: true,
+          started_at: { $gte: start, $lte: end },
+          user_id: {
+            $in: friendIds.map((id) => new mongoose.Types.ObjectId(id)),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$user_id",
+          totalDuration: { $sum: "$duration" },
+          sessionsCount: { $sum: 1 },
+        },
+      },
+      { $sort: { totalDuration: -1 } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "userInfo",
+        },
+      },
+      { $unwind: "$userInfo" },
+      {
+        $project: {
+          id: 1,
+          totalDuration: 1,
+          sessionsCount: 1,
+          name: "$userInfo.name",
+          avatar: "$userInfo.avatar",
+          username: "$userInfo.username",
+        },
+      },
+    ]);
+
+    res.json({
+      data: leaderboard,
+      startTime: start,
+      endTime: end,
+    });
+  } catch (err) {
+    console.error("[getLeaderboardFriends ERROR]", err);
     res.status(500).json({ error: err.message });
   }
 };

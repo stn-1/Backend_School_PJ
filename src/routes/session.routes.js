@@ -7,6 +7,7 @@ import {
   getDailySession,
   changeNote,
   getLeaderboard,
+  getLeaderboardFriends,
 } from "../controllers/session.controller.js";
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
@@ -28,6 +29,11 @@ router.get(
   "/leaderboard",
   validate(timeRangeQuerySchema, "query"),
   getLeaderboard
+);
+router.get(
+  "/leaderboard_friend",
+  validate(timeRangeQuerySchema, "query"),
+  getLeaderboardFriends
 );
 router.patch("/", validate(updateSessionSchema, "body"), updateSession);
 router.patch(

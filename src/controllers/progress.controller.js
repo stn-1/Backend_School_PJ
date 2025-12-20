@@ -291,21 +291,18 @@ export const getProgress = async (req, res) => {
 export const getGifts = async (req, res) => {
   try {
     const userId = req.user.id;
+
     const progress = await Progress.findOne({ user: userId }).populate({
       path: "gifts.senderId",
-      select: "name avatar username",
+      select: "name ",
     });
 
-    if (!progress) {
-      return res.status(404).json({ message: "User progress not found" });
-    }
+    if (!progress) return res.status(404).json({ message: "Not found" });
 
-    // 2. Làm phẳng dữ liệu bằng .map()
     const flattenedGifts = progress.gifts.map((gift) => {
       return {
         id: gift._id,
         icon: gift.icon,
-        claimed: gift.claimed,
         claimedAt: gift.claimedAt,
         createdAt: gift.createdAt,
         senderId: gift.senderId?._id || null,
@@ -313,13 +310,10 @@ export const getGifts = async (req, res) => {
       };
     });
 
-    // Trả về danh sách đã làm phẳng
-    return res.json({
-      data: flattenedGifts,
-    });
+    return res.json({ data: flattenedGifts });
   } catch (error) {
-    console.error("[getGifts ERROR]", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error(error);
+    return res.status(500).json({ message: "Error" });
   }
 };
 export const getGiftsbyId = async (req, res) => {
@@ -328,18 +322,15 @@ export const getGiftsbyId = async (req, res) => {
 
     const progress = await Progress.findOne({ user: userId }).populate({
       path: "gifts.senderId",
-      select: "name avatar username",
+      select: "name avatar",
     });
 
-    if (!progress) {
-      return res.status(404).json({ message: "User progress not found" });
-    }
+    if (!progress) return res.status(404).json({ message: "Not found" });
 
     const flattenedGifts = progress.gifts.map((gift) => {
       return {
         id: gift._id,
         icon: gift.icon,
-        claimed: gift.claimed,
         claimedAt: gift.claimedAt,
         createdAt: gift.createdAt,
         senderId: gift.senderId?._id || null,
@@ -347,12 +338,10 @@ export const getGiftsbyId = async (req, res) => {
       };
     });
 
-    return res.json({
-      data: flattenedGifts,
-    });
+    return res.json({ data: flattenedGifts });
   } catch (error) {
-    console.error("[getGifts ERROR]", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error(error);
+    return res.status(500).json({ message: "Error" });
   }
 };
 

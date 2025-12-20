@@ -3,11 +3,13 @@ const { Schema } = mongoose;
 
 // Subschema cho mỗi gift
 const GiftSchema = new mongoose.Schema({
-  receiveId: { type: String, required: true },
-  senderId: { type: String, required: true },
+  senderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
   icon: { type: String, required: true },
-  claimed: { type: Boolean, default: false },
-  claimedAt: { type: Date },
+  sendAt: { type: Date },
 });
 //đây là phần phục vụ cho profile của mỗi user
 //cũng có thể cân nhắc việc sử dụng index khi có nhiều

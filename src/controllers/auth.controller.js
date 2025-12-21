@@ -128,6 +128,7 @@ export const login = async (req, res) => {
     //cập nhật
     user.status = "online";
     user.refreshToken = refreshToken;
+    await user.save();
     return res.json({
       message: "Login success",
       data: {

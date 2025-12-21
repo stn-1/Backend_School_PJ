@@ -158,17 +158,25 @@ export const getFriendList = async (req, res) => {
       .populate("user1", "username avatar name status")
       .populate("user2", "username avatar name status");
 
-    // chỉ trả về bạn mình dưới là logic kiểm tra
-    const friends = friendships.map((f) => {
-      if (f.user1._id.toString() === userId.toString()) {
-        return { ...f.user2.toObject(), friendshipId: f._id };
-      } else {
-        return { ...f.user1.toObject(), friendshipId: f._id };
-      }
-    });
+    //sử lý null
+    const friends = friendships
+      .map((f) => {
+        //kiểm tra user có tồn tại không
+        if (!f.user1 || !f.user2) return null;
+
+        const isUser1Me = f.user1._id.toString() === userId.toString();
+        const friendData = isUser1Me ? f.user2 : f.user1;
+
+        return {
+          ...friendData.toObject(),
+          friendshipId: f._id,
+        };
+      })
+      .filter((item) => item !== null); //loại bỏ null
 
     res.status(200).json(friends);
   } catch (error) {
+    console.error("Error in getFriendList:", error);
     res.status(500).json({ error: error.message });
   }
 };

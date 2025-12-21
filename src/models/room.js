@@ -24,14 +24,13 @@ const RoomSchema = new Schema(
       default: () => nanoid(ROOM_CODE_LENGTH),
     },
 
-
     owner_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
     is_public: { type: Boolean, default: false },
     locked: { type: Boolean, default: false },
     chat_during_pomodoro: { type: Boolean, default: true },
 
     background: {
-      name: { type: String, default: "aurora-2k.webp" },
+      name: { type: String, default: "/image/aurora-2k.webp" },
       type: { type: String, enum: ["static", "animated"], default: "static" },
     },
 

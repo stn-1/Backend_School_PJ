@@ -389,8 +389,8 @@ export const sendGift = async (req, res) => {
   }
 };
 const calculateNextLevelXp = (currentLevel) => {
-  // Công thức: 10 * (L^2) + 50 * L + 100
-  return 10 * Math.pow(currentLevel, 2) + 50 * currentLevel + 100;
+  // Công thức: (50*L)^1.2
+  return Math.round(Math.pow(50 * currentLevel, 1.2));
 };
 //cả phần bên dưới có tác dụng cộng thêm phần xp và coin vào cho user khi front-end gọi
 export const increaseUserProgress = async (req, res) => {

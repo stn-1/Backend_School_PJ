@@ -76,10 +76,10 @@ export const register = async (req, res) => {
 
     await Progress.create({
       user: user._id,
-      coins: 0,
+      coins: 10,
       level: 1,
       current_xp: 0,
-      remaining_xp: 100,
+      remaining_xp: 50,
       streak: 0,
       total_hours: 0,
       promo_complete: 0,

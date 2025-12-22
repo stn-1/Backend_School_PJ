@@ -42,7 +42,11 @@ const io = new Server(server, {
 chatSocket(io);
 
 //hemet giúp chống Clickjacking và MIME Sniffing
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 app.use(
   cors({
     origin: ["http://localhost:5173", "https://rizumu-sage.vercel.app"],

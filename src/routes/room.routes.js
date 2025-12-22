@@ -101,6 +101,7 @@ router.patch(
   roomAdminLimit,
   validate(roomIdParamSchema, "params"),
   validate(changeBackgroundSchema, "body"),
+  verifyRoomMembership,
   changeBackground
 );
 
@@ -109,6 +110,7 @@ router.post(
   roomAdminLimit,
   validate(roomIdParamSchema, "params"),
   validate(kickMemberSchema, "body"),
+  verifyRoomMembership,
   kickMember
 );
 

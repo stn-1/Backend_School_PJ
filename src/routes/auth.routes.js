@@ -26,21 +26,18 @@ import {
 import redisRateLimit from "../middlewares/redisRateLimit.js";
 const router = express.Router();
 
-// 1. Dành cho Đăng ký/Đăng nhập (Chống Brute-force)
 const authStrictLimit = redisRateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 10, // Chỉ cho phép 10 lần thử
+  windowMs: 15 * 60 * 1000,
+  max: 10, 
   keyPrefix: "rl:auth-strict",
 });
 
-// 2. Dành cho các thao tác cập nhật (Chống spam upload/update)
 const updateLimit = redisRateLimit({
-  windowMs: 1 * 60 * 1000, // 1 phút
-  max: 5, // Chỉ cho phép 5 lần cập nhật/phút
+  windowMs: 1 * 60 * 1000, 
+  max: 5, 
   keyPrefix: "rl:auth-update",
 });
 
-// 3. Dành cho các thao tác đọc dữ liệu (Profile, Search)
 const generalLimit = redisRateLimit({
   windowMs: 1 * 60 * 1000, // 1 phút
   max: 30, // 30 requests/phút

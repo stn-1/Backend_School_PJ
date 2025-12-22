@@ -164,7 +164,7 @@ export const getHourlyStats = async (req, res) => {
       started_at: { $lte: end },
       ended_at: { $gte: start },
     });
-    console.log(sessions);
+    //console.log(sessions);
 
     const hourlyStats = new Array(24).fill(0);
 
@@ -221,7 +221,7 @@ export const getDailySession = async (req, res) => {
       started_at: { $lte: end },
       ended_at: { $gte: start },
     });
-    console.log(sessions);
+    //console.log(sessions);
     res.status(200).json(sessions);
   } catch (error) {
     console.error("Error:", error);

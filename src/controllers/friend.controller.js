@@ -155,8 +155,8 @@ export const getFriendList = async (req, res) => {
       $or: [{ user1: userId }, { user2: userId }],
       status: "accepted",
     })
-      .populate("user1", "username avatar name status")
-      .populate("user2", "username avatar name status");
+      .populate("user1", "bio avatar name status")
+      .populate("user2", "bio avatar name status");
 
     //sử lý null
     const friends = friendships

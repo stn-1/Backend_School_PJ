@@ -80,10 +80,10 @@ export const getPublicRooms = async (req, res) => {
   try {
     const rooms = await Room.find({ is_public: true })
       .select("name description owner_id room_members")
-      // .populate({
-      //   path: "owner_id",
-      //   select: "avatar",
-      // })
+      .populate({
+        path: "owner_id",
+        select: "name",
+      })
       .populate({
         path: "room_members.user_id",
         select: "avatar",

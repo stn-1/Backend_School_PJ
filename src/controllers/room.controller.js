@@ -80,10 +80,10 @@ export const getPublicRooms = async (req, res) => {
   try {
     const rooms = await Room.find({ is_public: true })
       .select("name description owner_id room_members")
-      .populate({
-        path: "owner_id",
-        select: "username avatar",
-      })
+      // .populate({
+      //   path: "owner_id",
+      //   select: "avatar",
+      // })
       .populate({
         path: "room_members.user_id",
         select: "avatar",
@@ -94,8 +94,8 @@ export const getPublicRooms = async (req, res) => {
       id: room._id,
       name: room.name,
       description: room.description,
-      host_name: room.owner_id?.username,
-      host_avatar: room.owner_id?.avatar,
+      host_name: room.owner_id?.name,
+      // host_avatar: room.owner_id?.avatar,
       members: room.room_members.map((m) => ({
         avatar: m.user_id?.avatar,
       })),
@@ -231,23 +231,23 @@ export const getRoomMembers = async (req, res) => {
 
     const room = await Room.findById(roomId)
       .select("room_members")
-      .populate("room_members.user_id", "username name avatar")
+      .populate("room_members.user_id", "name avatar")
       .lean();
 
     if (!room) {
       return res.status(404).json({ message: "Không tìm thấy phòng" });
     }
 
-    const members = room.room_members.map((m) => {
-      const u = m.user_id;
+    const members = room.room_members.map((member) => {
+      const user = member.user_id;
       return {
-        user_id: u._id.toString(),
-        username: u.username,
-        name: u.name,
-        avatar: u.avatar,
-        role: m.role,
-        joined_at: m.joined_at,
-        last_active_at: m.last_active_at,
+        user_id: user._id.toString(),
+        // username: u.username,
+        name: user.name,
+        avatar: user.avatar,
+        role: member.role,
+        joined_at: member.joined_at,
+        last_active_at: member.last_active_at,
       };
     });
 

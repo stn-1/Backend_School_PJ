@@ -32,7 +32,7 @@ function signRefreshToken(user) {
 //đăng kí
 export const register = async (req, res) => {
   try {
-    const { username, password, name } = req.body;
+    const { username, password } = req.body;
 
     if (!username || !password)
       return res.status(400).json({ message: "Missing username or password" });
@@ -43,7 +43,7 @@ export const register = async (req, res) => {
 
     const user = new User({
       username,
-      name: name || "",
+      name: "Anonymous User",
     });
 
     //sử lý phần hash pass ở db
@@ -56,22 +56,9 @@ export const register = async (req, res) => {
     user.refreshToken = refreshToken;
     user.status = "online";
 
-    await user.save();
-
-    await Progress.create({
-      user: user._id,
-      coins: 0,
-      level: 1,
-      current_xp: 0,
-      remaining_xp: 100,
-      streak: 0,
-      total_hours: 0,
-      promo_complete: 0,
-      gifts: [],
-    });
     //phần tạo phòng mặc định
     const newRoom = new Room({
-      name: `${user.name || user.username}'s Room`,
+      name: "Study Room",
       description: "Your personal space!",
       owner_id: user._id,
       room_members: [
@@ -84,13 +71,26 @@ export const register = async (req, res) => {
     user.default_room_id = newRoom._id;
     user.current_room_id = newRoom._id;
 
-    await newRoom.save();
     await user.save();
+    await newRoom.save();
+
+    await Progress.create({
+      user: user._id,
+      coins: 0,
+      level: 1,
+      current_xp: 0,
+      remaining_xp: 100,
+      streak: 0,
+      total_hours: 0,
+      promo_complete: 0,
+      gifts: [],
+    });
+
     return res.status(201).json({
       message: "Register success",
       data: {
         _id: user._id,
-        username: user.username,
+        // username: user.username,
         name: user.name,
         status: user.status,
         avatar: user.avatar,
@@ -129,11 +129,12 @@ export const login = async (req, res) => {
     user.status = "online";
     user.refreshToken = refreshToken;
     await user.save();
+
     return res.json({
       message: "Login success",
       data: {
         _id: user._id,
-        username: user.username,
+        // username: user.username,
         name: user.name,
         status: user.status,
         avatar: user.avatar,
@@ -250,21 +251,21 @@ export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     //chỗ được phép sửa tránh đụng đến một số thành phần quan trọng
-    const { name, username, country, bio, password, newPassword } = req.body;
+    const { name, country, bio, password, newPassword } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
     //nếu thay đổi username thì phải check trùng
-    if (username && username !== user.username) {
-      const existingUser = await User.findOne({ username });
-      if (existingUser) {
-        return res.status(400).json({ message: "username already taken" });
-      }
-      user.username = username;
-    }
+    // if (username && username !== user.username) {
+    //   const existingUser = await User.findOne({ username });
+    //   if (existingUser) {
+    //     return res.status(400).json({ message: "username already taken" });
+    //   }
+    //   user.username = username;
+    // }
 
     if (name !== undefined) user.name = name;
-    if (bio !== undefined) user.bio = bio; // Nếu bạn đã thêm field bio vào Model
+    if (bio !== undefined) user.bio = bio;
     if (country !== undefined) user.country = country;
 
     if (password) {
@@ -283,7 +284,7 @@ export const updateProfile = async (req, res) => {
       message: "Profile updated successfully",
       user: {
         id: user._id,
-        username: user.username,
+        // username: user.username,
         name: user.name,
         bio: user.bio,
         country: user.country,
@@ -306,7 +307,7 @@ export const getProfilebyID = async (req, res) => {
     if (!userId) return res.status(400).json({ message: "Thiếu user_id" });
 
     const data = await User.findById(userId).select(
-      "-password -password_hash -refreshToken -__v -avatar_public_id"
+      "-password -password_hash -refreshToken -__v -avatar_public_id -username"
     ); //loại bỏ các trường nguy hiểm
 
     if (!data)
@@ -318,7 +319,7 @@ export const getProfilebyID = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-// tìm kiếm theo username
+// tìm kiếm theo username (email)
 export const searchUsers = async (req, res) => {
   try {
     const { q } = req.query;
@@ -329,14 +330,23 @@ export const searchUsers = async (req, res) => {
         .json({ message: "Vui lòng nhập từ khóa tìm kiếm" });
     }
 
-    const users = await User.find({
-      username: { $regex: q.trim(), $options: "i" },
+    const searchQuery = q.trim();
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValidEmail = emailRegex.test(searchQuery);
+
+    if (!isValidEmail) {
+      return res.status(400).json({
+        message: "Vui lòng nhập email hợp lệ để tìm kiếm",
+      });
+    }
+
+    const users = await User.find({
+      username: searchQuery.toLowerCase(),
       _id: { $ne: currentUserId },
     })
-
       .select("username avatar name")
-      .limit(10); //chỉ lấy 10 người
+      .limit(10);
 
     return res.status(200).json(users);
   } catch (err) {

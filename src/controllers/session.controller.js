@@ -312,7 +312,8 @@ export const getLeaderboard = async (req, res) => {
           sessionsCount: 1,
           name: "$userInfo.name",
           avatar: "$userInfo.avatar",
-          username: "$userInfo.username",
+          // username: "$userInfo.username",
+          description: "$userInfo.description",
         },
       },
     ]);
@@ -388,7 +389,8 @@ export const getLeaderboardFriends = async (req, res) => {
           sessionsCount: 1,
           name: "$userInfo.name",
           avatar: "$userInfo.avatar",
-          username: "$userInfo.username",
+          // username: "$userInfo.username",
+          description: "$userInfo.description",
         },
       },
     ]);

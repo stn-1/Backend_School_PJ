@@ -138,7 +138,7 @@ export const getFriendRequests = async (req, res) => {
     const requests = await Friendship.find({
       $or: [{ user1: userId }, { user2: userId }],
       status: "pending",
-    }).populate("requester receiver", "username avatar name"); // Lấy thông tin người gửi để hiển thị
+    }).populate("requester receiver", "avatar name"); // Lấy thông tin người gửi để hiển thị
 
     res.status(200).json(requests);
   } catch (error) {

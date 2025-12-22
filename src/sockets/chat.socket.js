@@ -21,7 +21,7 @@ export default function chatSocket(io) {
       // Lưu thông tin user vào socket
       socket.currentUser = {
         _id: user._id.toString(),
-        name: user.username,
+        name: user.name,
         avatar: user.avatar,
         currentRoomId: user.current_room_id.toString(), // Room ID dùng làm socket room key
       };

@@ -20,7 +20,7 @@ export const getRoomMessages = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .limit(limit)
-      .populate("sender_id", "username avatar")
+      .populate("sender_id", "avatar")
       .lean();
     messages.reverse();
     const message2 = messages.map((msg) => ({

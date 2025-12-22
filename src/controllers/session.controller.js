@@ -313,7 +313,7 @@ export const getLeaderboard = async (req, res) => {
           name: "$userInfo.name",
           avatar: "$userInfo.avatar",
           // username: "$userInfo.username",
-          description: "$userInfo.description",
+          bio: "$userInfo.bio",
         },
       },
     ]);
@@ -390,7 +390,7 @@ export const getLeaderboardFriends = async (req, res) => {
           name: "$userInfo.name",
           avatar: "$userInfo.avatar",
           // username: "$userInfo.username",
-          description: "$userInfo.description",
+          bio: "$userInfo.bio",
         },
       },
     ]);

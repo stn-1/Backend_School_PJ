@@ -29,6 +29,15 @@ function signRefreshToken(user) {
   });
 }
 
+const setRefreshTokenCookie = (res, token) => {
+  res.cookie("refreshToken", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "Lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+};
+
 //đăng kí
 export const register = async (req, res) => {
   try {
@@ -74,6 +83,8 @@ export const register = async (req, res) => {
     await user.save();
     await newRoom.save();
 
+    setRefreshTokenCookie(res, refreshToken);
+
     await Progress.create({
       user: user._id,
       coins: 10,
@@ -100,7 +111,7 @@ export const register = async (req, res) => {
         country: user.country,
       },
       access_token: accessToken,
-      refresh_token: refreshToken,
+      //refresh_token: refreshToken,
     });
   } catch (err) {
     console.error("[REGISTER ERROR]", err);
@@ -130,6 +141,9 @@ export const login = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    // Gửi Refresh Token qua Cookie
+    setRefreshTokenCookie(res, refreshToken);
+
     return res.json({
       message: "Login success",
       data: {
@@ -144,7 +158,7 @@ export const login = async (req, res) => {
         country: user.country,
       },
       access_token: accessToken,
-      refresh_token: refreshToken,
+      //refresh_token: refreshToken,
     });
   } catch (err) {
     console.error("[LOGIN ERROR]", err);
@@ -155,7 +169,7 @@ export const login = async (req, res) => {
 //phần lấy access token từ refresh token
 export const requestRefreshToken = async (req, res) => {
   try {
-    const { refresh_token } = req.body;
+    const refresh_token = req.cookies.refreshToken;
 
     if (!refresh_token)
       return res.status(401).json({ message: "No refresh token provided" });
@@ -178,6 +192,7 @@ export const requestRefreshToken = async (req, res) => {
       return res.status(403).json({ message: "Invalid refresh token" });
     }
 
+    // Cấp Access Token mới
     const newAccessToken = signAccessToken(user);
 
     return res.json({
@@ -205,7 +220,8 @@ export const getProfile = async (req, res) => {
 //đăng xuất
 export const logout = async (req, res) => {
   try {
-    //khi đăng xuất ta xóa refresh token và set lại status
+    // 1. Cập nhật Database: Xóa refresh token và set lại status
+    // Lưu ý: req.user.id có được là nhờ bạn đã chạy middleware verifyToken trước đó
     const user = await User.findById(req.user.id);
 
     if (user) {
@@ -214,8 +230,23 @@ export const logout = async (req, res) => {
       await user.save();
     }
 
-    return res.json({ message: "Logout success" });
+    // 2. QUAN TRỌNG: Xóa Cookie ở phía Trình duyệt
+    // Bạn phải truyền các option giống hệt lúc bạn res.cookie(...)
+    // (ngoại trừ maxAge và expires) để trình duyệt tìm đúng cookie để xóa.
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax", // Hoặc 'None' nếu bạn dùng Cross-site
+      // path: "/" // Nếu lúc set bạn có để path thì lúc xóa cũng phải có
+    });
+
+    // 3. Phản hồi cho client
+    return res.status(200).json({
+      message: "Logout success",
+      status: "offline",
+    });
   } catch (err) {
+    console.error("[LOGOUT ERROR]", err);
     return res.status(500).json({ message: "Server error" });
   }
 };

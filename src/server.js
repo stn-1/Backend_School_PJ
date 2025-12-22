@@ -15,7 +15,7 @@ import sessionRoutes from "./routes/session.routes.js";
 import tagRoute from "./routes/tag.routes.js";
 //import xss from "xss-clean";
 //import mongoSanitize from "express-mongo-sanitize";
-import redisRateLimit from "./middlewares/redisRateLimit.js";
+
 
 import connectDB from "./models/db.js";
 import http from "http";

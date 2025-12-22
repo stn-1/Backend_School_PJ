@@ -10,9 +10,9 @@ export const getRoomMessages = async (req, res) => {
     const before = req.query.before ? new Date(req.query.before) : new Date();
 
     const room = await Room.findById(roomId);
-    //phần dưới là để query trong db nhưng có thêm before để chỉ lấy những tin trước before
     if (!room) return res.status(404).json({ message: "Room not found" });
 
+    //phần dưới là để query trong db nhưng có thêm before để chỉ lấy những tin trước before
     const messages = await Message.find({
       conversation_id: room._id,
       on_model: "Room",

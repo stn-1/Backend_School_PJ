@@ -13,6 +13,7 @@ import {
 } from "../controllers/room.controller.js";
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { verifyRoomMembership } from "../middlewares/roomAuth.js";
 import { validate } from "../middlewares/validate.js";
 import redisRateLimit from "../middlewares/redisRateLimit.js";
 import {
@@ -82,6 +83,7 @@ router.get(
   "/:id/members",
   roomReadLimit,
   validate(roomIdParamSchema, "params"),
+  verifyRoomMembership,
   getRoomMembers
 );
 

@@ -6,6 +6,7 @@ import { validate } from "../middlewares/validate.js";
 import { getRoomMessagesSchema } from "../validators/message.validator.js";
 import redisRateLimit from "../middlewares/redisRateLimit.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
+import { verifyRoomMembership } from "../middlewares/roomAuth.js";
 const readMessageLimit = redisRateLimit({
   windowMs: 1 * 60 * 1000,
   max: 40,
@@ -18,6 +19,7 @@ router.get(
   readMessageLimit,
   validate(getRoomMessagesSchema.params, "params"),
   validate(getRoomMessagesSchema.query, "query"),
+  verifyRoomMembership,
   getRoomMessages
 );
 

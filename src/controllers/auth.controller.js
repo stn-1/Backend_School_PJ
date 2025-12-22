@@ -345,7 +345,7 @@ export const searchUsers = async (req, res) => {
       username: searchQuery.toLowerCase(),
       _id: { $ne: currentUserId },
     })
-      .select("username avatar name")
+      .select("description avatar name")
       .limit(10);
 
     return res.status(200).json(users);

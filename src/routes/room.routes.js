@@ -92,6 +92,7 @@ router.patch(
   roomAdminLimit,
   validate(roomIdParamSchema, "params"),
   validate(updateRoomSchema, "body"),
+  verifyRoomMembership,
   updateRoom
 );
 

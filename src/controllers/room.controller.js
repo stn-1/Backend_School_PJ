@@ -204,7 +204,29 @@ export const updateRoom = async (req, res) => {
   try {
     const roomId = req.params.id;
     const userId = req.user.id;
-    const updates = req.body;
+
+    // 1. ĐỊNH NGHĨA CÁC TRƯỜNG ĐƯỢC PHÉP SỬA
+    const allowedUpdates = [
+      "name",
+      "description",
+      "slug",
+      "chat_during_pomodoro",
+    ];
+
+    // 2. LỌC req.body
+    const updates = Object.keys(req.body).reduce((obj, key) => {
+      if (allowedUpdates.includes(key)) {
+        obj[key] = req.body[key];
+      }
+      return obj;
+    }, {});
+
+    // Kiểm tra nếu không có trường nào hợp lệ được gửi lên
+    if (Object.keys(updates).length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Không có trường hợp lệ nào để cập nhật" });
+    }
 
     const room = await Room.findById(roomId);
     if (!room) return res.status(404).json({ message: "Không tìm thấy phòng" });
@@ -213,6 +235,7 @@ export const updateRoom = async (req, res) => {
       return res.status(403).json({ message: "Bạn không có quyền sửa phòng" });
     }
 
+    // 3. CẬP NHẬT VỚI DỮ LIỆU ĐÃ LỌC
     Object.assign(room, updates);
     room.updated_at = new Date();
 

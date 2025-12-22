@@ -16,7 +16,6 @@ import tagRoute from "./routes/tag.routes.js";
 //import xss from "xss-clean";
 //import mongoSanitize from "express-mongo-sanitize";
 
-
 import connectDB from "./models/db.js";
 import http from "http";
 import { Server } from "socket.io";
@@ -51,7 +50,8 @@ app.use(
   })
 );
 app.use(morgan("dev"));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
 //phần dể test phần chat

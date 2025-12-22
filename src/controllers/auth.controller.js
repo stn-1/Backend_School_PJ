@@ -30,7 +30,7 @@ function signRefreshToken(user) {
 }
 
 const setRefreshTokenCookie = (res, token) => {
-  res.cookie("refreshToken", token, {
+  res.cookie("refresh_token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "Lax",

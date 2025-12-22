@@ -2,7 +2,7 @@
 import User from "../models/user.js";
 import Room from "../models/room.js";
 import Message from "../models/message.js";
-
+import redisClient from "../config/redis.js";
 export default function chatSocket(io) {
   // -------------------------
   // Middleware xác thực user
@@ -47,15 +47,29 @@ export default function chatSocket(io) {
     // User gửi tin nhắn
     socket.on("send_message", async (msgContent) => {
       try {
+        const userId = socket.currentUser._id;
+        const key = `rl:socket:msg:${userId}`;
+        const current = await redisClient.incr(key);
+
+        if (current === 1) await redisClient.pexpire(key, 10000);
+
+        if (current > 10) {
+          return socket.emit("error_message", { message: "Chat quá nhanh!" });
+        }
+      } catch (err) {
+        console.error("Redis Rate Limit Error (Vẫn cho phép chat):", err);
+        // Không return ở đây, để code chạy tiếp xuống dưới
+      }
+
+      // --- PHẦN CHỨC NĂNG CŨ CỦA BẠN (GIỮ NGUYÊN) ---
+      try {
         const messageData = {
           sender_id: socket.currentUser._id,
-          //senderName: socket.currentUser.name,
           content: msgContent,
           createdAt: new Date().toISOString(),
           type: "text",
         };
 
-        // Lưu vào DB
         await Message.create({
           sender_id: socket.currentUser._id,
           conversation_id: socket.currentUser.currentRoomId,
@@ -63,13 +77,12 @@ export default function chatSocket(io) {
           content: msgContent,
         });
 
-        // Emit cho tất cả socket trong cùng room
         io.to(socket.currentUser.currentRoomId).emit(
           "new_message",
           messageData
         );
       } catch (err) {
-        console.error("Error saving message:", err);
+        console.error("Lỗi lưu tin nhắn:", err);
       }
     });
 

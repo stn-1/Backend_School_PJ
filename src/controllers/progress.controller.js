@@ -389,8 +389,8 @@ export const sendGift = async (req, res) => {
   }
 };
 const calculateNextLevelXp = (currentLevel) => {
-  const baseXP = 100;
-  return Math.floor(baseXP * Math.pow(1.2, currentLevel));
+  // Công thức: 10 * (L^2) + 50 * L + 100
+  return 10 * Math.pow(currentLevel, 2) + 50 * currentLevel + 100;
 };
 //cả phần bên dưới có tác dụng cộng thêm phần xp và coin vào cho user khi front-end gọi
 export const increaseUserProgress = async (req, res) => {
@@ -408,29 +408,33 @@ export const increaseUserProgress = async (req, res) => {
     ) {
       return res.status(400).json({ message: "Values must be numbers" });
     }
+
     let progress = await Progress.findOne({ user: userId });
 
     if (!progress) {
       return res.status(404).json({ message: "Progress not found" });
     }
+
     if (coins !== undefined) {
       progress.coins += coins;
     }
 
     if (xpToAdd !== undefined) {
       progress.current_xp += xpToAdd;
-      if (progress.remaining_xp === 0) {
+
+      // Nếu đây là lần đầu hoặc dữ liệu cũ chưa có mốc level tiếp theo
+      if (!progress.remaining_xp || progress.remaining_xp === 0) {
         progress.remaining_xp = calculateNextLevelXp(progress.level);
       }
+
+      // Trong khi XP tổng lớn hơn hoặc bằng mốc XP cần thiết của level hiện tại
       while (progress.current_xp >= progress.remaining_xp) {
-        // trừ đi só xp có để lên lv
-        progress.current_xp -= progress.remaining_xp;
         progress.level += 1;
+        // Tính toán mốc XP mới cần đạt được để lên level tiếp theo
         progress.remaining_xp = calculateNextLevelXp(progress.level);
       }
     }
 
-    // 4. Lưu lại vào database
     await progress.save();
 
     return res.json({

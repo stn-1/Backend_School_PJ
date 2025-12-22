@@ -14,7 +14,7 @@ import {
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validate.js";
-
+import redisRateLimit from "../middlewares/redisRateLimit.js";
 import {
   roomIdParamSchema,
   roomSlugParamSchema,
@@ -27,28 +27,67 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-router.get("/public", getPublicRooms);
+const joinLeaveLimit = redisRateLimit({
+  windowMs: 1 * 60 * 1000, // 1 phút
+  max: 10, // Chỉ cho phép đổi phòng/vào ra 10 lần/phút
+  keyPrefix: "rl:room-join",
+});
+
+// 2. Giới hạn các thao tác Quản lý (Update, Kick, Background)
+// Những hành động này làm thay đổi trạng thái phòng và ảnh hưởng đến mọi người đang tập trung.
+const roomAdminLimit = redisRateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 5, // Chỉ cho phép chỉnh sửa 5 lần/phút
+  keyPrefix: "rl:room-admin",
+});
+
+// 3. Giới hạn xem danh sách phòng/thành viên (Đọc dữ liệu)
+const roomReadLimit = redisRateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 30,
+  keyPrefix: "rl:room-read",
+});
+
+router.get("/public", roomReadLimit, getPublicRooms);
 
 router.get(
   "/slug/:slug",
   validate(roomSlugParamSchema, "params"),
+  roomReadLimit,
   getRoomBySlug
 );
 
-router.get("/id/:id", validate(roomIdParamSchema, "params"), getRoomByid);
+router.get(
+  "/id/:id",
+  roomReadLimit,
+  validate(roomIdParamSchema, "params"),
+  getRoomByid
+);
 
-router.post("/:id/join", validate(roomIdParamSchema, "params"), joinRoom);
+router.post(
+  "/:id/join",
+  joinLeaveLimit,
+  validate(roomIdParamSchema, "params"),
+  joinRoom
+);
 
-router.post("/:id/leave", validate(roomIdParamSchema, "params"), leaveRoom);
+router.post(
+  "/:id/leave",
+  joinLeaveLimit,
+  validate(roomIdParamSchema, "params"),
+  leaveRoom
+);
 
 router.get(
   "/:id/members",
+  roomReadLimit,
   validate(roomIdParamSchema, "params"),
   getRoomMembers
 );
 
 router.patch(
   "/:id",
+  roomAdminLimit,
   validate(roomIdParamSchema, "params"),
   validate(updateRoomSchema, "body"),
   updateRoom
@@ -56,6 +95,7 @@ router.patch(
 
 router.patch(
   "/:id/background",
+  roomAdminLimit,
   validate(roomIdParamSchema, "params"),
   validate(changeBackgroundSchema, "body"),
   changeBackground
@@ -63,6 +103,7 @@ router.patch(
 
 router.post(
   "/:id/kick",
+  roomAdminLimit,
   validate(roomIdParamSchema, "params"),
   validate(kickMemberSchema, "body"),
   kickMember

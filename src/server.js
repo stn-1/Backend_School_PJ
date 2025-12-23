@@ -34,7 +34,11 @@ const __dirname = path.dirname(__filename);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "https://rizumu-sage.vercel.app"],
+    origin: [
+      "https://localhost:5173",
+      "http://localhost:5173",
+      "https://rizumu-sage.vercel.app",
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -49,7 +53,11 @@ app.use(
 );
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://rizumu-sage.vercel.app"],
+    origin: [
+      "http://localhost:5173",
+      "https://rizumu-sage.vercel.app",
+      "https://localhost:5173",
+    ],
     credentials: true,
   })
 );

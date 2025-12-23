@@ -8,7 +8,6 @@ export const sendFriendRequest = async (req, res) => {
   try {
     const requesterId = req.user?._id || req.user?.id; //do đặt tên không thống nhất
     const { recipientId } = req.body;
-    console.log(requesterId);
     if (requesterId.toString() === recipientId) {
       return res
         .status(400)

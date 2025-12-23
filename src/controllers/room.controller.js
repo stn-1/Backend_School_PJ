@@ -220,6 +220,7 @@ export const updateRoom = async (req, res) => {
       "description",
       "slug",
       "chat_during_pomodoro",
+      "locked",
     ];
 
     // 2. LỌC req.body
@@ -333,7 +334,6 @@ export const changeBackground = async (req, res) => {
     const { id } = req.params;
     const { name, type } = req.body;
     const currentUserId = req.user.id;
-    console.log(name);
 
     if (type && !["static", "animated"].includes(type)) {
       return res.status(400).json({

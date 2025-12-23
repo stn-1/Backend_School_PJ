@@ -32,9 +32,12 @@ function signRefreshToken(user) {
 const setRefreshTokenCookie = (res, token) => {
   res.cookie("refreshToken", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Lax",
+    // secure: process.env.NODE_ENV === "production",
+    secure: false,
+    // sameSite: "Lax",
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
   });
 };
 

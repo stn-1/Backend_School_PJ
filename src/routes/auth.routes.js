@@ -28,13 +28,13 @@ const router = express.Router();
 
 const authStrictLimit = redisRateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, 
+  max: 10,
   keyPrefix: "rl:auth-strict",
 });
 
 const updateLimit = redisRateLimit({
-  windowMs: 1 * 60 * 1000, 
-  max: 5, 
+  windowMs: 1 * 60 * 1000,
+  max: 5,
   keyPrefix: "rl:auth-update",
 });
 
@@ -51,7 +51,7 @@ router.post("/login", authStrictLimit, validate(loginSchema), login);
 router.post(
   "/refresh",
   generalLimit,
-  validate(refreshTokenSchema),
+  // validate(refreshTokenSchema),
   requestRefreshToken
 );
 

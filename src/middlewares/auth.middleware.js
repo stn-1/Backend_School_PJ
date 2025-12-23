@@ -13,7 +13,7 @@ export const verifyToken = (req, res, next) => {
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(403).json({ message: "Access token not found" });
+    return res.status(401).json({ message: "Access token not found" });
   }
 
   jwt.verify(token, ACCESS_TOKEN_SECRET, (err, decodedUser) => {

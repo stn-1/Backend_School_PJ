@@ -6,6 +6,7 @@ import {
   getHourlyStats,
   getDailySession,
   changeNote,
+  changeTag,
   getLeaderboard,
   getLeaderboardFriends,
 } from "../controllers/session.controller.js";
@@ -17,6 +18,7 @@ import {
   updateSessionSchema,
   timeRangeQuerySchema,
   changeNoteSchema,
+  changeTagSchema,
 } from "../validators/session.validator.js";
 import redisRateLimit from "../middlewares/redisRateLimit.js";
 const router = express.Router();
@@ -79,6 +81,12 @@ router.patch(
   sessionWriteLimit,
   validate(changeNoteSchema, "body"),
   changeNote
+);
+router.patch(
+  "/:session_id/tag",
+  sessionWriteLimit,
+  validate(changeTagSchema, "body"),
+  changeTag
 );
 router.get(
   "/hourly",

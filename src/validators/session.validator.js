@@ -27,3 +27,6 @@ export const timeRangeQuerySchema = Joi.object({
 export const changeNoteSchema = Joi.object({
   notes: Joi.string().max(500).custom(cleanText).required(),
 });
+export const changeTagSchema = Joi.object({
+  tags: Joi.string().allow(null).optional(),
+});

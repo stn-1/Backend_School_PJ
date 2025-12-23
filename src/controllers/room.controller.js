@@ -218,9 +218,9 @@ export const updateRoom = async (req, res) => {
     const allowedUpdates = [
       "name",
       "description",
-      "slug",
       "chat_during_pomodoro",
       "locked",
+      "is_public",
     ];
 
     // 2. LỌC req.body

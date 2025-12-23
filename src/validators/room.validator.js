@@ -17,6 +17,8 @@ export const updateRoomSchema = Joi.object({
   name: Joi.string().max(100).custom(cleanText),
   description: Joi.string().max(500).allow("").custom(cleanText),
   is_public: Joi.boolean(),
+  locked: Joi.boolean(),
+  chat_during_pomodoro: Joi.boolean(),
 }).min(1);
 
 export const changeBackgroundSchema = Joi.object({

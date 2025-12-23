@@ -8,6 +8,7 @@ export const startSessionSchema = Joi.object({
   started_at: Joi.date(),
   timer_type: Joi.string(),
   session_type: Joi.string(),
+  tag_id: Joi.string().allow(null).optional(),
 });
 
 export const updateSessionSchema = Joi.object({

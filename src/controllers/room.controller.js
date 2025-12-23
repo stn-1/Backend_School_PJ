@@ -130,6 +130,15 @@ export const joinRoom = async (req, res) => {
       });
     }
 
+    if (
+      targetRoom.locked &&
+      targetRoom.owner_id.toString() !== userId.toString()
+    ) {
+      return res.status(403).json({
+        message: "Phòng hiện đang bị khóa, bạn không thể tham gia lúc này.",
+      });
+    }
+
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User không tồn tại" });
 

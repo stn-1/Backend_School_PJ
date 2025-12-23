@@ -5,10 +5,8 @@ import Progress from "../models/progress.js";
 import { v2 as cloudinary } from "cloudinary";
 import Room from "../models/room.js";
 //phần lấy token
-const ACCESS_TOKEN_SECRET =
-  process.env.ACCESS_TOKEN_SECRET || "access_secret_123";
-const REFRESH_TOKEN_SECRET =
-  process.env.REFRESH_TOKEN_SECRET || "refresh_secret_456";
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
 const ACCESS_TOKEN_EXPIRES = "15m";
 const REFRESH_TOKEN_EXPIRES = "7d";
 //các hàm helper
@@ -130,10 +128,10 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Missing username or password" });
 
     const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ message: "User not found" });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
     const ok = await user.comparePassword(password);
-    if (!ok) return res.status(400).json({ message: "Incorrect password" });
+    if (!ok) return res.status(400).json({ message: "Invalid credentials" });
 
     //phần tạo mới nếu người dùng đang nhập lại hacker sẽ mất session đang có
     const accessToken = signAccessToken(user);
@@ -173,7 +171,6 @@ export const login = async (req, res) => {
 export const requestRefreshToken = async (req, res) => {
   try {
     const refresh_token = req.cookies.refreshToken;
-
     if (!refresh_token)
       return res.status(401).json({ message: "No refresh token provided" });
 
@@ -230,6 +227,7 @@ export const logout = async (req, res) => {
     if (user) {
       user.status = "offline";
       user.refreshToken = null;
+      user.accessToken = null;
       await user.save();
     }
 
@@ -238,8 +236,8 @@ export const logout = async (req, res) => {
     // (ngoại trừ maxAge và expires) để trình duyệt tìm đúng cookie để xóa.
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax", // Hoặc 'None' nếu bạn dùng Cross-site
+      secure: "true",
+      sameSite: "none", // Hoặc 'None' nếu bạn dùng Cross-site
       // path: "/" // Nếu lúc set bạn có để path thì lúc xóa cũng phải có
     });
 

@@ -232,26 +232,37 @@ export const changeNote = async (req, res) => {
   try {
     const { session_id } = req.params;
     const { notes } = req.body;
-    if (!notes) {
-      return res.status(400).json({ message: "Notes is required" });
-    }
-
-    const session = await Session.findByIdAndUpdate(
-      session_id,
+    const userId = req.user.id;
+    const session = await Session.findOneAndUpdate(
+      {
+        _id: session_id,
+        user_id: userId,
+      },
       { notes },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!session) {
-      return res.status(404).json({ message: "Session not found" });
+      return res.status(404).json({
+        message:
+          "Không tìm thấy phiên làm việc hoặc bạn không có quyền chỉnh sửa.",
+      });
     }
 
     return res.status(200).json({
-      message: "Note updated successfully",
+      message: "Cập nhật ghi chú thành công",
       session,
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    console.error("[CHANGE NOTE ERROR]", err);
+    if (err.name === "CastError") {
+      return res
+        .status(400)
+        .json({ message: "ID phiên làm việc không hợp lệ" });
+    }
+    return res
+      .status(500)
+      .json({ message: "Lỗi hệ thống khi cập nhật ghi chú" });
   }
 };
 export const getLeaderboard = async (req, res) => {

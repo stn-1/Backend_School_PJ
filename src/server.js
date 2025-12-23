@@ -48,9 +48,61 @@ chatSocket(io);
 //hemet giúp chống Clickjacking và MIME Sniffing
 app.use(
   helmet({
-    crossOriginResourcePolicy: false,
+    // 1. Content Security Policy (CSP): Quan trọng nhất
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        // Cho phép script từ domain của bạn và các nguồn tin cậy
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://rizumu-sage.vercel.app",
+        ],
+        // Cho phép Socket.io kết nối (Rất quan trọng cho chatSocket)
+        connectSrc: [
+          "'self'",
+          "https://rizumu-sage.vercel.app",
+          "ws://localhost:3000", // Thay 3000 bằng cổng bạn dùng
+          "wss://your-backend-domain.com", // Domain thật của backend khi deploy
+          "http://localhost:5173",
+        ],
+        // Cho phép hiển thị ảnh từ base64 (data:) hoặc các link ảnh (nếu có)
+        imgSrc: [
+          "'self'",
+          "data:",
+          "https://res.cloudinary.com",
+          "https://*.googleusercontent.com",
+        ],
+        // Cho phép font từ Google hoặc các nguồn khác
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        // Chống nhúng trang web vào iframe để tránh Clickjacking
+        frameAncestors: ["'self'", "https://rizumu-sage.vercel.app"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [], // Tự động chuyển HTTP sang HTTPS
+      },
+    },
+    // 2. Cross-Origin Resource Policy: Cho phép frontend load tài nguyên từ backend
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+
+    // 3. X-Frame-Options: Chống Clickjacking (chỉ cho phép domain cùng nguồn)
+    xFrameOptions: { action: "sameorigin" },
+
+    // 4. HSTS: Ép trình duyệt dùng HTTPS (chỉ kích hoạt khi đã có SSL/HTTPS)
+    strictTransportSecurity: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+
+    // 5. Ẩn thông tin công nghệ (X-Powered-By: Express)
+    hidePoweredBy: true,
+
+    // 6. Chống đánh cắp thông tin qua MIME sniffing
+    xContentTypeOptions: true,
   })
 );
+
 app.use(
   cors({
     origin: [

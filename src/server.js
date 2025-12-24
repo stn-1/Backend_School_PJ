@@ -28,6 +28,11 @@ dotenv.config();
 
 const app = express();
 
+// Trust proxy để lấy IP thật của client sau reverse proxy
+// Số 1 nghĩa là tin tưởng first proxy hop
+// Nếu có nhiều proxies (VD: Cloudflare -> Nginx -> App), dùng số lớn hơn hoặc true
+app.set("trust proxy", true);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 //thiết lập socket

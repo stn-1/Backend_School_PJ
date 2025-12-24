@@ -3,7 +3,8 @@ import redisClient from "../config/redis.js";
 const redisRateLimit = ({ windowMs, max, keyPrefix = "rate-limit" }) => {
   return async (req, res, next) => {
     try {
-      const identifier = req.user?.id || req.ip;
+      // Lấy identifier: ưu tiên user ID, fallback về IP, cuối cùng là 'unknown'
+      const identifier = req.user?.id || req.ip || "unknown";
       const key = `${keyPrefix}:${identifier}`;
 
       const current = await redisClient.incr(key);

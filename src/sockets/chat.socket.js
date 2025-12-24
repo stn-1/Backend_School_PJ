@@ -39,10 +39,45 @@ export default function chatSocket(io) {
   // -------------------------
   // Xử lý các event
   // -------------------------
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     console.log(
       `${socket.currentUser.name} connected to room ${socket.currentUser.currentRoomId}`
     );
+
+    // Set user status to online
+    await User.findByIdAndUpdate(socket.currentUser._id, {
+      status: "online",
+    });
+
+    // Lấy danh sách users online trong room
+    const room = await Room.findById(socket.currentUser.currentRoomId)
+      .populate({
+        path: "room_members.user_id",
+        select: "name avatar status",
+      })
+      .lean();
+
+    if (room) {
+      const onlineUsers = room.room_members
+        .filter((member) => member.user_id?.status === "online")
+        .map((member) => ({
+          user_id: member.user_id._id.toString(),
+          name: member.user_id.name,
+          avatar: member.user_id.avatar,
+          status: "online",
+        }));
+
+      // Gửi danh sách users online cho user vừa connect
+      socket.emit("room_online_users", onlineUsers);
+    }
+
+    // Thông báo cho room members về user online
+    io.to(socket.currentUser.currentRoomId).emit("user_online", {
+      user_id: socket.currentUser._id,
+      name: socket.currentUser.name,
+      avatar: socket.currentUser.avatar,
+      status: "online",
+    });
 
     // User gửi tin nhắn
     socket.on("send_message", async (msgContent) => {
@@ -87,10 +122,22 @@ export default function chatSocket(io) {
     });
 
     // Disconnect
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       console.log(
         `${socket.currentUser.name} disconnected from room ${socket.currentUser.currentRoomId}`
       );
+
+      // Set user status to offline
+      await User.findByIdAndUpdate(socket.currentUser._id, {
+        status: "offline",
+      });
+
+      // Thông báo cho room members về user offline
+      io.to(socket.currentUser.currentRoomId).emit("user_offline", {
+        user_id: socket.currentUser._id,
+        // name: socket.currentUser.name,
+        status: "offline",
+      });
     });
   });
 }

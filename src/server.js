@@ -43,6 +43,10 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
+// Export io instance để dùng trong controllers
+export { io };
+
 chatSocket(io);
 
 //hemet giúp chống Clickjacking và MIME Sniffing

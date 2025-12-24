@@ -1,7 +1,9 @@
 import Session from "../models/session.js";
 import User from "../models/user.js";
+import Message from "../models/message.js";
 import mongoose from "mongoose";
 import Friendship from "../models/friendship.js";
+import { io } from "../server.js";
 // Bắt đầu session mới
 export const startSession = async (req, res) => {
   try {
@@ -23,6 +25,19 @@ export const startSession = async (req, res) => {
     });
 
     await session.save();
+
+    if (timer_type === "focus" || session_type === "pomodoro") {
+      const user = await User.findById(user_id).select("name current_room_id");
+      if (user && user.current_room_id) {
+        io.to(user.current_room_id.toString()).emit("new_message", {
+          sender_id: user_id,
+          content: `${user.name} is aura farming!`,
+          createdAt: new Date().toISOString(),
+          type: "system",
+        });
+      }
+    }
+
     res.status(201).json({ message: "Session started", session });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -50,6 +65,22 @@ export const updateSession = async (req, res) => {
     if (completed === true) {
       session.completed = true;
       session.ended_at = ended_at ? new Date(ended_at) : new Date();
+
+      if (
+        session.timer_type === "focus" ||
+        session.session_type === "pomodoro"
+      ) {
+        const user = await User.findById(userId).select("name current_room_id");
+
+        if (user && user.current_room_id) {
+          io.to(user.current_room_id.toString()).emit("new_message", {
+            sender_id: userId,
+            content: `${user.name} has finished aura farming!`,
+            createdAt: new Date().toISOString(),
+            type: "system",
+          });
+        }
+      }
     }
 
     await session.save();
@@ -60,7 +91,7 @@ export const updateSession = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-//start time và end time được nhận từ user để đảm bảo sử lý thời gian
+
 export const heatmapData = async (req, res) => {
   try {
     const { user_id, startTime, endTime } = req.query;
@@ -164,7 +195,6 @@ export const getHourlyStats = async (req, res) => {
       started_at: { $lte: end },
       ended_at: { $gte: start },
     });
-    //console.log(sessions);
 
     const hourlyStats = new Array(24).fill(0);
 
@@ -221,7 +251,7 @@ export const getDailySession = async (req, res) => {
       started_at: { $lte: end },
       ended_at: { $gte: start },
     });
-    //console.log(sessions);
+
     res.status(200).json(sessions);
   } catch (error) {
     console.error("Error:", error);

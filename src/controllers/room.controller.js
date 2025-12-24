@@ -3,6 +3,7 @@
 import mongoose from "mongoose";
 import Room from "../models/room.js";
 import User from "../models/user.js";
+import { io } from "../server.js";
 //logic của phần này: mỗi người mặc định sẽ có một phòng khi sang phòng
 //người khác phải lưu lại phòng mặc định để quay về
 
@@ -371,6 +372,15 @@ export const changeBackground = async (req, res) => {
     if (type) room.background.type = type;
 
     const updatedRoom = await room.save();
+    console.log(memberInfo);
+    // Emit WebSocket event to notify all users in the room
+    io.to(id).emit("background_changed", {
+      background: updatedRoom.background,
+      changed_by: {
+        id: currentUserId,
+        name: "Admin",
+      },
+    });
 
     return res.status(200).json({
       success: true,

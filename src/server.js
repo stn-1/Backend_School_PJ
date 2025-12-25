@@ -43,6 +43,7 @@ const io = new Server(server, {
       "https://localhost:5173",
       "http://localhost:5173",
       "https://rizumu-sage.vercel.app",
+      "https://192.168.1.3:5173",
     ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -74,6 +75,7 @@ app.use(
           "ws://localhost:3000", // Thay 3000 bằng cổng bạn dùng
           "wss://your-backend-domain.com", // Domain thật của backend khi deploy
           "http://localhost:5173",
+          "https://192.168.1.3:5173",
         ],
         // Cho phép hiển thị ảnh từ base64 (data:) hoặc các link ảnh (nếu có)
         imgSrc: [
@@ -118,6 +120,7 @@ app.use(
       "http://localhost:5173",
       "https://rizumu-sage.vercel.app",
       "https://localhost:5173",
+      "https://192.168.1.3:5173/",
     ],
     credentials: true,
   })

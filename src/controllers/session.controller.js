@@ -95,7 +95,7 @@ export const updateSession = async (req, res) => {
 export const heatmapData = async (req, res) => {
   try {
     const { user_id, startTime, endTime } = req.query;
-    const timezone = "+07:00";
+    const timezone = "+00:00";
     const maybeUserId = user_id ?? req.user?.id;
     if (!maybeUserId || !mongoose.Types.ObjectId.isValid(maybeUserId)) {
       return res.status(400).json({ error: "Invalid or missing user id" });

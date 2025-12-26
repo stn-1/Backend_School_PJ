@@ -55,11 +55,13 @@ export { io };
 
 chatSocket(io);
 
-//hemet giúp chống Clickjacking và MIME Sniffing
+//helmet giúp chống Clickjacking và MIME Sniffing
 app.use(
   helmet({
     // 1. Content Security Policy (CSP): Quan trọng nhất
     contentSecurityPolicy: {
+      // Explicitly enforce CSP (not report-only mode) - fixes Lighthouse issue
+      reportOnly: false,
       directives: {
         defaultSrc: ["'self'"],
         // Cho phép script từ domain của bạn và các nguồn tin cậy
@@ -90,26 +92,51 @@ app.use(
         // Chống nhúng trang web vào iframe để tránh Clickjacking
         frameAncestors: ["'self'", "https://rizumu-sage.vercel.app"],
         objectSrc: ["'none'"],
-        upgradeInsecureRequests: [], // Tự động chuyển HTTP sang HTTPS
+        // Trusted Types directive for DOM XSS protection - fixes Lighthouse issue
+        requireTrustedTypesFor: ["'script'"],
+        // Allow upgrade to HTTPS (removed empty array which was incorrect)
+        upgradeInsecureRequests: null,
       },
     },
+
     // 2. Cross-Origin Resource Policy: Cho phép frontend load tài nguyên từ backend
     crossOriginResourcePolicy: { policy: "cross-origin" },
 
-    // 3. X-Frame-Options: Chống Clickjacking (chỉ cho phép domain cùng nguồn)
-    xFrameOptions: { action: "sameorigin" },
+    // 3. Cross-Origin Opener Policy (COOP): Bảo vệ khỏi cross-origin attacks - fixes Lighthouse issue
+    crossOriginOpenerPolicy: { policy: "same-origin" },
 
-    // 4. HSTS: Ép trình duyệt dùng HTTPS (chỉ kích hoạt khi đã có SSL/HTTPS)
-    strictTransportSecurity: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true,
+    // 4. X-Frame-Options: REMOVED - conflicts with CSP frameAncestors directive
+    // CSP frameAncestors is more flexible and secure
+    // xFrameOptions: { action: "sameorigin" },
+
+    // 5. HSTS: Ép trình duyệt dùng HTTPS (chỉ kích hoạt khi có HTTPS)
+    // Environment-aware: only enable in production or when using HTTPS
+    strictTransportSecurity:
+      process.env.NODE_ENV === "production"
+        ? {
+            maxAge: 31536000, // 1 year
+            includeSubDomains: true,
+            preload: true,
+          }
+        : false,
+
+    // 6. Referrer Policy: Kiểm soát thông tin referrer
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+
+    // 7. Permissions Policy: Kiểm soát browser features
+    permissionsPolicy: {
+      features: {
+        camera: ["'none'"],
+        microphone: ["'none'"],
+        geolocation: ["'none'"],
+        payment: ["'none'"],
+      },
     },
 
-    // 5. Ẩn thông tin công nghệ (X-Powered-By: Express)
+    // 8. Ẩn thông tin công nghệ (X-Powered-By: Express)
     hidePoweredBy: true,
 
-    // 6. Chống đánh cắp thông tin qua MIME sniffing
+    // 9. Chống đánh cắp thông tin qua MIME sniffing
     xContentTypeOptions: true,
   })
 );

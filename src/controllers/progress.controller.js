@@ -8,7 +8,7 @@ export const getStreakStats = async (req, res) => {
   try {
     const userId = req.user.id || req.user._id;
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    const TIMEZONE_STRING = "+07:00";
+    const TIMEZONE_STRING = "UTC";
 
     // 1. Aggregation: Lấy danh sách ngày tập (Unique & Sorted Tăng dần)
     const datesResult = await Session.aggregate([
@@ -77,12 +77,11 @@ export const getStreakStats = async (req, res) => {
     let currentStreak = 0;
 
     const now = new Date();
-    const nowInVN = new Date(now.getTime() + 7 * 60 * 60 * 1000);
-    const todayStr = nowInVN.toISOString().split("T")[0];
+    const todayStr = now.toISOString().split("T")[0];
 
-    const yesterdayInVN = new Date(nowInVN);
-    yesterdayInVN.setUTCDate(yesterdayInVN.getUTCDate() - 1);
-    const yesterdayStr = yesterdayInVN.toISOString().split("T")[0];
+    const yesterday = new Date(now);
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
 
     const lastWorkoutDate = sortedDates[sortedDates.length - 1];
 
@@ -112,20 +111,18 @@ export const getProgress = async (req, res) => {
 
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
-    // timezone
-    const TIMEZONE_OFFSET = 7;
-    const TIMEZONE_STRING = "+07:00";
+    // timezone - sử dụng UTC
+    const TIMEZONE_OFFSET = 0;
+    const TIMEZONE_STRING = "UTC";
     const now = new Date();
-    const nowInVN = new Date(now.getTime() + TIMEZONE_OFFSET * 60 * 60 * 1000);
+    const nowUTC = now; // Sử dụng trực tiếp UTC
 
-    // xác định thời điểm bắ đầu tuần
-    const currentDayVN = nowInVN.getUTCDay() || 7;
-    const startOfWeekVN = new Date(nowInVN);
-    startOfWeekVN.setUTCDate(startOfWeekVN.getUTCDate() - currentDayVN + 1);
-    startOfWeekVN.setUTCHours(0, 0, 0, 0);
-    const queryStartOfWeek = new Date(
-      startOfWeekVN.getTime() - TIMEZONE_OFFSET * 60 * 60 * 1000
-    );
+    // xác định thời điểm bắt đầu tuần (UTC)
+    const currentDayUTC = nowUTC.getUTCDay() || 7;
+    const startOfWeekUTC = new Date(nowUTC);
+    startOfWeekUTC.setUTCDate(startOfWeekUTC.getUTCDate() - currentDayUTC + 1);
+    startOfWeekUTC.setUTCHours(0, 0, 0, 0);
+    const queryStartOfWeek = startOfWeekUTC;
 
     const [sessionStats, giftSentResult] = await Promise.all([
       Session.aggregate([
@@ -210,10 +207,10 @@ export const getProgress = async (req, res) => {
     let currentStreak = 0;
     let bestStreak = 0;
 
-    const todayStr = nowInVN.toISOString().split("T")[0];
-    const yesterdayInVN = new Date(nowInVN);
-    yesterdayInVN.setUTCDate(yesterdayInVN.getUTCDate() - 1);
-    const yesterdayStr = yesterdayInVN.toISOString().split("T")[0];
+    const todayStr = nowUTC.toISOString().split("T")[0];
+    const yesterdayUTC = new Date(nowUTC);
+    yesterdayUTC.setUTCDate(yesterdayUTC.getUTCDate() - 1);
+    const yesterdayStr = yesterdayUTC.toISOString().split("T")[0];
 
     if (sortedDates.length > 0) {
       let tempStreak = 1;

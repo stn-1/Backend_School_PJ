@@ -13,8 +13,6 @@ import messageRoutes from "./routes/message.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
 import sessionRoutes from "./routes/session.routes.js";
 import tagRoute from "./routes/tag.routes.js";
-//import xss from "xss-clean";
-//import mongoSanitize from "express-mongo-sanitize";
 
 import connectDB from "./models/db.js";
 import http from "http";
@@ -28,9 +26,7 @@ dotenv.config();
 
 const app = express();
 
-// Trust proxy để lấy IP thật của client sau reverse proxy
-// Số 1 nghĩa là tin tưởng first proxy hop
-// Nếu có nhiều proxies (VD: Cloudflare -> Nginx -> App), dùng số lớn hơn hoặc true
+//thông báo cho express rằng nó đang nằm sau một proxy
 app.set("trust proxy", true);
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,10 +51,10 @@ export { io };
 
 chatSocket(io);
 
-//helmet giúp chống Clickjacking và MIME Sniffing
+//thiết lập helmet
 app.use(
   helmet({
-    // 1. Content Security Policy (CSP): Quan trọng nhất
+    // Content Security Policy (CSP)
     contentSecurityPolicy: {
       // Explicitly enforce CSP (not report-only mode) - fixes Lighthouse issue
       reportOnly: false,
@@ -70,16 +66,16 @@ app.use(
           "'unsafe-inline'",
           "https://rizumu-sage.vercel.app",
         ],
-        // Cho phép Socket.io kết nối (Rất quan trọng cho chatSocket)
+        // Cho phép Socket.io kết nối
         connectSrc: [
           "'self'",
           "https://rizumu-sage.vercel.app",
-          "ws://localhost:3000", // Thay 3000 bằng cổng bạn dùng
-          "wss://your-backend-domain.com", // Domain thật của backend khi deploy
+          "ws://localhost:3000",
+          "wss://backend-school-pj-1.onrender.com",
           "http://localhost:5173",
           "https://192.168.1.3:5173",
         ],
-        // Cho phép hiển thị ảnh từ base64 (data:) hoặc các link ảnh (nếu có)
+        // Cho phép hiển thị ảnh từ base64 hoặc các link ảnh
         imgSrc: [
           "'self'",
           "data:",
@@ -92,38 +88,32 @@ app.use(
         // Chống nhúng trang web vào iframe để tránh Clickjacking
         frameAncestors: ["'self'", "https://rizumu-sage.vercel.app"],
         objectSrc: ["'none'"],
-        // Trusted Types directive for DOM XSS protection - fixes Lighthouse issue
+        // Trusted Types directive for DOM XSS protection
         requireTrustedTypesFor: ["'script'"],
-        // Allow upgrade to HTTPS (removed empty array which was incorrect)
+        // Allow upgrade to HTTPS
         upgradeInsecureRequests: null,
       },
     },
 
-    // 2. Cross-Origin Resource Policy: Cho phép frontend load tài nguyên từ backend
+    //Cho phép frontend load tài nguyên từ backend
     crossOriginResourcePolicy: { policy: "cross-origin" },
 
-    // 3. Cross-Origin Opener Policy (COOP): Bảo vệ khỏi cross-origin attacks - fixes Lighthouse issue
+    // Cross-Origin Opener Policy (COOP): Bảo vệ khỏi cross-origin attacks
     crossOriginOpenerPolicy: { policy: "same-origin" },
 
-    // 4. X-Frame-Options: REMOVED - conflicts with CSP frameAncestors directive
-    // CSP frameAncestors is more flexible and secure
-    // xFrameOptions: { action: "sameorigin" },
-
-    // 5. HSTS: Ép trình duyệt dùng HTTPS (chỉ kích hoạt khi có HTTPS)
-    // Environment-aware: only enable in production or when using HTTPS
     strictTransportSecurity:
       process.env.NODE_ENV === "production"
         ? {
-            maxAge: 31536000, // 1 year
+            maxAge: 31536000,
             includeSubDomains: true,
             preload: true,
           }
         : false,
 
-    // 6. Referrer Policy: Kiểm soát thông tin referrer
+    //Referrer Policy: Kiểm soát thông tin referrer
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
 
-    // 7. Permissions Policy: Kiểm soát browser features
+    // Permissions Policy: Kiểm soát browser features
     permissionsPolicy: {
       features: {
         camera: ["'none'"],
@@ -133,10 +123,10 @@ app.use(
       },
     },
 
-    // 8. Ẩn thông tin công nghệ (X-Powered-By: Express)
+    // Ẩn thông tin công nghệ (X-Powered-By: Express)
     hidePoweredBy: true,
 
-    // 9. Chống đánh cắp thông tin qua MIME sniffing
+    // Chống đánh cắp thông tin qua MIME sniffing
     xContentTypeOptions: true,
   })
 );

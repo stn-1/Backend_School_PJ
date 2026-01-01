@@ -13,6 +13,7 @@ import messageRoutes from "./routes/message.routes.js";
 import progressRoutes from "./routes/progress.routes.js";
 import sessionRoutes from "./routes/session.routes.js";
 import tagRoute from "./routes/tag.routes.js";
+import taskRoute from "./routes/task.routes.js";
 
 import connectDB from "./models/db.js";
 import http from "http";
@@ -159,6 +160,7 @@ app.use("/api", messageRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/session", sessionRoutes);
 app.use("/api/tags", tagRoute);
+app.use("/api/task", taskRoute);
 //bắt đầu server
 const PORT = process.env.PORT || 3000;
 

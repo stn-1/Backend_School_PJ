@@ -6,9 +6,8 @@ const TaskSchema = new Schema(
   {
     user_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String, required: true },
-    time_complete: { type: Number, default: 0 },
+    note: { type: String, default: "" },
     is_complete: { type: Boolean, default: false },
-    meta: { type: Schema.Types.Mixed, default: {} },
   },
   {
     timestamps: true,

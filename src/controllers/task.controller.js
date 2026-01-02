@@ -47,7 +47,7 @@ export const getTasks = async (req, res) => {
 export const createTask = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { title, note } = req.body;
+    const { title, note, time_complete } = req.body;
 
     if (!title) {
       return res.status(400).json({ message: "Tiêu đề không được để trống" });
@@ -57,6 +57,7 @@ export const createTask = async (req, res) => {
       user_id: userId,
       title,
       note: note || "",
+      time_complete: time_complete,
     });
 
     const savedTask = await newTask.save();
@@ -78,7 +79,7 @@ export const updateTask = async (req, res) => {
     if (error) return res.status(status).json({ message: error });
 
     // Whitelist lọc dữ liệu
-    const allowedUpdates = ["title", "note", "is_complete"];
+    const allowedUpdates = ["title", "note", "is_complete", "time_complete"];
     let hasUpdate = false;
 
     allowedUpdates.forEach((field) => {

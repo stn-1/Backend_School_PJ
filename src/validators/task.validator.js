@@ -9,6 +9,7 @@ export const createTaskSchema = Joi.object({
   }),
   note: Joi.string().max(1000).custom(cleanText).allow("").optional(),
   is_complete: Joi.boolean().default(false),
+  time_complete: Joi.date().required(),
 });
 
 // 2. Validation khi cập nhật Task (PATCH)
@@ -17,6 +18,7 @@ export const updateTaskSchema = Joi.object({
   title: Joi.string().max(2000).custom(cleanText),
   note: Joi.string().max(1000).custom(cleanText).allow(""),
   is_complete: Joi.boolean(),
+  time_complete: Joi.date(),
 }).min(1);
 
 // 3. Validation cho Query Parameters khi lấy danh sách Task (GET)
